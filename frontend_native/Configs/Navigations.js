@@ -2,6 +2,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useEffect, useState } from "react";
 import LoginPage from "../Pages/Login";
 import UserAuth from "./UserAuth";
+import HomePage from "../Pages/Home";
 
 const Stack = createNativeStackNavigator();
 
@@ -34,6 +35,7 @@ export default function Navigations() {
       initialRouteName={user ? "home" : "login"}
     >
       <Stack.Screen name="login" component={LoginPage} />
+      <Stack.Screen name="home" component={HomePage} />
     </Stack.Navigator>
   );
 }

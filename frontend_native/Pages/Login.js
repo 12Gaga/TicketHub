@@ -2,11 +2,37 @@ import { useNavigation } from "@react-navigation/native";
 import { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity } from "react-native";
 import tw from "twrnc";
+import globalApi from "../Configs/globalApi";
+import UserAuth from "../Configs/UserAuth";
 
 export default function LoginPage() {
   const [data, setData] = useState({ identifier: "", password: "" });
   const [success, setSuccess] = useState(true);
   const navigation = useNavigation();
+
+  const loginUser = async () => {
+    try {
+      if (!data.identifier || !data.password) {
+        alert("Please fill all fields");
+        return;
+      }
+
+      const resp = await globalApi.checkUser(data);
+
+      if (resp.ok) {
+        navigation.navigate("home");
+        await UserAuth.setUserAuth(data);
+        setSuccess(true);
+        setData({ identifier: "", password: "" });
+      } else {
+        console.log("Failed ❌", resp.data);
+        setSuccess(false);
+      }
+    } catch (error) {
+      console.log("Error ❌", error);
+      setSuccess(false);
+    }
+  };
 
   return (
     <View style={tw`flex-1 bg-blue-100 items-center justify-center`}>
@@ -16,7 +42,7 @@ export default function LoginPage() {
         Log In
       </Text>
       <TextInput
-        placeholder="User Name"
+        placeholder="Username"
         value={data.identifier}
         onChangeText={(text) => setData({ ...data, identifier: text })}
         style={tw`w-[330px] border border-black rounded-[5px] pl-2 mb-[18px] text-[13px]`}
@@ -37,7 +63,7 @@ export default function LoginPage() {
       )}
       <TouchableOpacity
         style={tw`w-[100px] bg-[#0383CE] p-2.5 rounded-lg items-center`}
-        // onPress={loginUser}
+        onPress={loginUser}
       >
         <Text style={tw`text-white`}>Log In</Text>
       </TouchableOpacity>

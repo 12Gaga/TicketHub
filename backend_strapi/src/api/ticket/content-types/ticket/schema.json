@@ -1,0 +1,28 @@
+{
+  "kind": "collectionType",
+  "collectionName": "tickets",
+  "info": {
+    "singularName": "ticket",
+    "pluralName": "tickets",
+    "displayName": "Ticket"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Name": {
+      "type": "string",
+      "required": true
+    },
+    "Price": {
+      "type": "biginteger"
+    },
+    "ticket_limits": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::ticket-limit.ticket-limit",
+      "mappedBy": "ticket"
+    }
+  }
+}
