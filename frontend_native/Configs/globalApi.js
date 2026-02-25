@@ -13,7 +13,25 @@ today.setHours(0, 0, 0, 0);
 const isoDate = today.toISOString();
 
 const checkUser = (userData) => api.post("/auth/local", userData);
+const getTicket = () => api.get("/tickets");
+const getEvents = () =>
+  api.get("/events?filters[On_Live][$eq]=true&populate=*");
+const getExpiredEvents = () =>
+  api.get("/events?filters[On_Live][$eq]=false&populate=*");
+const setEventTicketLimit = (eventTicket) =>
+  api.post("/ticket-limits", { data: eventTicket });
+const setEvent = (event) => api.post("/events", { data: event });
+const changeEventStatus = (documentId, status = false) =>
+  api.put(`/events/${documentId}?locale=fr`, {
+    data: { On_Live: status },
+  });
 
 export default {
   checkUser,
+  getTicket,
+  getEvents,
+  getExpiredEvents,
+  setEventTicketLimit,
+  setEvent,
+  changeEventStatus,
 };

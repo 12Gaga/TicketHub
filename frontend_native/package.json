@@ -24,7 +24,8 @@
     "react-native": "0.81.5",
     "react-native-safe-area-context": "~5.6.0",
     "react-native-screens": "~4.16.0",
-    "twrnc": "^4.16.0"
+    "twrnc": "^4.16.0",
+    "expo-checkbox": "~5.0.8"
   },
   "private": true
 }
