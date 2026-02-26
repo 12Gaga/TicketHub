@@ -1,0 +1,38 @@
+{
+  "kind": "collectionType",
+  "collectionName": "booked_tickets",
+  "info": {
+    "singularName": "booked-ticket",
+    "pluralName": "booked-tickets",
+    "displayName": "BookedTicket"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "Name": {
+      "type": "text",
+      "required": true
+    },
+    "Phone": {
+      "type": "text",
+      "required": true
+    },
+    "Auth_Status": {
+      "type": "boolean",
+      "required": true,
+      "default": true
+    },
+    "event": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::event.event"
+    },
+    "ticket": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::ticket.ticket"
+    }
+  }
+}

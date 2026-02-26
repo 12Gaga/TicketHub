@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import LoginPage from "../Pages/Login";
 import UserAuth from "./UserAuth";
 import HomePage from "../Pages/Home";
+import GenerateQR from "../Pages/GenerateQR";
+import TicketCheck from "../Pages/TicketCheck";
 
 const Stack = createNativeStackNavigator();
 
@@ -36,6 +38,8 @@ export default function Navigations() {
     >
       <Stack.Screen name="login" component={LoginPage} />
       <Stack.Screen name="home" component={HomePage} />
+      <Stack.Screen name="generateQR" component={GenerateQR} />
+      <Stack.Screen name="ticketCheck" component={TicketCheck} />
     </Stack.Navigator>
   );
 }

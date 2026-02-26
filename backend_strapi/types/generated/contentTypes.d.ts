@@ -430,6 +430,41 @@ export interface AdminUser extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiBookedTicketBookedTicket
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'booked_tickets';
+  info: {
+    displayName: 'BookedTicket';
+    pluralName: 'booked-tickets';
+    singularName: 'booked-ticket';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    Auth_Status: Schema.Attribute.Boolean &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<true>;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    event: Schema.Attribute.Relation<'oneToOne', 'api::event.event'>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::booked-ticket.booked-ticket'
+    > &
+      Schema.Attribute.Private;
+    Name: Schema.Attribute.Text & Schema.Attribute.Required;
+    Phone: Schema.Attribute.Text & Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
+    ticket: Schema.Attribute.Relation<'oneToOne', 'api::ticket.ticket'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiEventEvent extends Struct.CollectionTypeSchema {
   collectionName: 'events';
   info: {
@@ -1040,6 +1075,7 @@ declare module '@strapi/strapi' {
       'admin::transfer-token': AdminTransferToken;
       'admin::transfer-token-permission': AdminTransferTokenPermission;
       'admin::user': AdminUser;
+      'api::booked-ticket.booked-ticket': ApiBookedTicketBookedTicket;
       'api::event.event': ApiEventEvent;
       'api::ticket-limit.ticket-limit': ApiTicketLimitTicketLimit;
       'api::ticket.ticket': ApiTicketTicket;

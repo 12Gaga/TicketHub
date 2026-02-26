@@ -64,7 +64,7 @@ export default function SetTicket() {
           <View style={tw`bg-white w-80 p-5 rounded-xl shadow-lg`}>
             <Text style={tw`text-lg font-bold mb-3`}>Set Ticket In Event</Text>
             <Picker
-              setEventTicketData={eventTicketData.event}
+              selectedValue={eventTicketData.event}
               onValueChange={(eventValue) => {
                 setEventTicketData({ ...eventTicketData, event: eventValue });
               }}
@@ -78,7 +78,7 @@ export default function SetTicket() {
               })}
             </Picker>
             <Picker
-              setEventTicketData={eventTicketData.ticket}
+              selectedValue={eventTicketData.ticket}
               onValueChange={(ticketValue) => {
                 setEventTicketData({ ...eventTicketData, ticket: ticketValue });
               }}
