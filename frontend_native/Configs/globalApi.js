@@ -1,10 +1,9 @@
 import { create } from "apisauce";
 
 const api = create({
-  baseURL: "http://192.168.1.34:1337/api",
+  baseURL: process.env.EXPO_PUBLIC_API_URL,
   headers: {
-    Authorization:
-      "Bearer c3146ba87b6ba5037982297c79aac27f304e19d1cf817cf2ed7ceada5125593b6d0081fc31677a7c1ef4cb553e9a61f70a7465a6c7ad920f143f71b985f6f36e9418b8f1f902b561c097118e8549997b7f7360a7074db5384b41cba3aa80ed21f9db6f406213f0796662bdd25fb343e5a9d9a5c6ba1e3d8bbd9ac00fa41c8122",
+    Authorization: `Bearer ${process.env.EXPO_PUBLIC_API_TOKEN}`,
   },
 });
 

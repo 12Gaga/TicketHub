@@ -1,6 +1,12 @@
-import { View, Text, TouchableOpacity } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  TextInput,
+} from "react-native";
 import Entypo from "@expo/vector-icons/Entypo";
+import { Ionicons } from "@expo/vector-icons";
 import tw from "twrnc";
 import { useState, useEffect } from "react";
 import { EventContext } from "../Configs/AuthContext";
@@ -13,6 +19,19 @@ export default function EventScreen() {
   const [ticket, setTicket] = useState(false);
   const [events, setEvents] = useState([]);
   const [tickets, setTickets] = useState([]);
+  const [search, setSearch] = useState("");
+  const [filteredEvents, setFilteredEvents] = useState([]);
+  const handleSearch = (text) => {
+    setSearch(text);
+    if (text.trim() === "") {
+      setFilteredEvents(events);
+    } else {
+      const filtered = events.filter((event) =>
+        event.Name.toLowerCase().includes(text.toLowerCase()),
+      );
+      setFilteredEvents(filtered);
+    }
+  };
 
   const clickExpired = async (eventDocumentId) => {
     try {
@@ -38,6 +57,7 @@ export default function EventScreen() {
         const result = await globalApi.getEvents();
         console.log("Events:", result.data.data);
         setEvents(result.data.data);
+        setFilteredEvents(result.data.data);
       } catch (error) {
         console.log("Error:", error);
       }
@@ -58,7 +78,7 @@ export default function EventScreen() {
     return () => {};
   }, []);
   return (
-    <SafeAreaView style={tw`flex-1 bg-blue-30 `}>
+    <ScrollView style={tw`flex-1 bg-white px-5 pt-10`}>
       <EventContext.Provider
         value={{
           createEvent,
@@ -70,33 +90,48 @@ export default function EventScreen() {
           setEvents,
         }}
       >
-        <View style={tw`flex-row justify-between items-center`}>
-          <TouchableOpacity
-            style={tw`w-[110px] p-2 bg-blue-500 rounded-xl ml-3 `}
-            onPress={() => setTicket(true)}
-          >
-            <Text style={tw`text-white font-bold text-center`}>
-              Set Tickets
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={tw`p-2 rounded-xl mr-3`}
-            onPress={() => setCreateEvent(true)}
-          >
-            <View style={tw`flex-row justify-center items-center`}>
-              <Entypo name="plus" size={24} color="#3B82F6" />
-              <Text style={tw`text-blue-500 font-bold`}>Create Event</Text>
-            </View>
-          </TouchableOpacity>
+        <Text style={tw`text-3xl font-bold text-indigo-600 mb-1`}>Events</Text>
+        <Text style={tw`text-gray-500 text-sm mb-5`}>
+          Manage all your events and ticket categories
+        </Text>
+        <TouchableOpacity
+          style={tw`bg-indigo-600 rounded-xl py-4 flex-row items-center justify-center mb-4`}
+          onPress={() => setCreateEvent(true)}
+        >
+          <Ionicons name="add" size={18} color="white" />
+          <Text style={tw`text-white font-bold text-sm ml-2`}>
+            Create Event
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={tw`bg-indigo-600 rounded-xl py-4 flex-row items-center justify-center mb-4`}
+          onPress={() => setTicket(true)}
+        >
+          <Ionicons name="add" size={18} color="white" />
+          <Text style={tw`text-white font-bold text-sm ml-2`}>
+            Set Tickets Limit
+          </Text>
+        </TouchableOpacity>
+        <View
+          style={tw`flex-row items-center border border-gray-200 rounded-xl px-4 py-3 bg-white mb-4`}
+        >
+          <Ionicons name="search-outline" size={16} color="#9CA3AF" />
+          <TextInput
+            placeholder="Search events by name, ..."
+            placeholderTextColor="#9CA3AF"
+            value={search}
+            onChangeText={handleSearch}
+            style={tw`flex-1 ml-2 text-sm text-gray-700`}
+          />
         </View>
         <Text
-          style={tw`text-[17px] font-bold text-blue-500 underline ml-3 mt-5`}
+          style={tw`text-[17px] font-bold text-indigo-600 underline ml-3 mt-5`}
         >
           Lived Events
         </Text>
 
-        {events.length ? (
-          events
+        {filteredEvents.length ? (
+          filteredEvents
             .sort((a, b) => new Date(a.Date) - new Date(b.Date))
             .map((event) => {
               return (
@@ -111,7 +146,7 @@ export default function EventScreen() {
                     </Text>
                   </View>
                   <TouchableOpacity
-                    style={tw`bg-blue-500 p-2 rounded-xl`}
+                    style={tw`bg-indigo-600 p-2 rounded-xl`}
                     onPress={() => clickExpired(event.documentId)}
                   >
                     <Text
@@ -125,12 +160,12 @@ export default function EventScreen() {
             })
         ) : (
           <View style={tw`flex-1 items-center justify-center`}>
-            <Text style={tw`text-blue-400 font-bold`}>No Lived Event</Text>
+            <Text style={tw`text-indigo-600 font-bold`}>No Event</Text>
           </View>
         )}
         <CreateEvent />
         <SetTicket />
       </EventContext.Provider>
-    </SafeAreaView>
+    </ScrollView>
   );
 }

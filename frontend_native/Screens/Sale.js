@@ -1,30 +1,32 @@
-import { View, Text, TouchableOpacity, TextInput } from "react-native";
-import { Picker } from "@react-native-picker/picker";
-import { SafeAreaView } from "react-native-safe-area-context";
-import tw from "twrnc";
 import { useState, useEffect } from "react";
+import { Picker } from "@react-native-picker/picker";
 import globalApi from "../Configs/globalApi";
-import { useNavigation } from "@react-navigation/native";
+import { View, Text, TouchableOpacity, ScrollView } from "react-native";
+import tw from "twrnc";
+import { Ionicons } from "@expo/vector-icons";
+import { SaleTicket } from "../Configs/AuthContext";
+import SingleTab from "../Components/SingleTab";
+import BulkTab from "../Components/BulkTab";
 
-export default function SaleScreen() {
-  const navigation = useNavigation();
+export default function OfflineTicketGeneration() {
+  const [activeTab, setActiveTab] = useState("single");
   const [data, setData] = useState({
-    Name: "",
-    Phone: "",
-    Auth_Status: true,
     event: null,
+    Name: "",
+    Email: "",
+    Phone: "",
     ticket: null,
+    Auth_Status: true,
+    Agent: "",
+    SeatNo: "",
+    Note: "",
   });
   const [events, setEvents] = useState([]);
   const [buyState, setBuyState] = useState(1);
   const [ticketLimit, setTicketLimit] = useState([]);
   const [avariableTicketType, setAvariableTicketType] = useState([]);
   const [soldOut, setSoldOut] = useState(false);
-  const [routeData, setRouteData] = useState({
-    documentID: "",
-    name: "",
-    ticket_type: "",
-  });
+
   useEffect(() => {
     const fetchEvents = async () => {
       try {
@@ -41,12 +43,14 @@ export default function SaleScreen() {
 
   const changeEvent = async (eventID) => {
     setData({ ...data, event: eventID });
+    setAvariableTicketType([]);
     try {
       const resp = await globalApi.getTicketLimit(eventID);
       if (resp.ok) {
         console.log("ticketLimit", resp.data.data);
         setTicketLimit(resp.data.data);
-        resp.data.data.map((item) => avariableTicketType.push(item.ticket));
+        const tickets = resp.data.data.map((item) => item.ticket);
+        setAvariableTicketType(tickets);
       } else {
         console.log("error", resp.problem);
       }
@@ -64,9 +68,10 @@ export default function SaleScreen() {
         const data = ticketLimit.find(
           (item) => item.ticket.documentId == ticketID,
         );
-        setRouteData({ ...routeData, ticket_type: data.ticket.Name });
         const limit = data.Limit;
-        if (resp.data.data.length >= limit) {
+        if (!limit) {
+          setSoldOut(false);
+        } else if (resp.data.data.length >= limit && data.isLimited) {
           setSoldOut(true);
         } else {
           setSoldOut(false);
@@ -78,19 +83,29 @@ export default function SaleScreen() {
       console.error(error);
     }
   };
+
   const handleBooking = async () => {
-    console.log("To db...");
-    if (!data.event || !data.ticket || !data.Name || !data.Phone) {
-      Alert.alert("Please fill all fields");
+    if (
+      !data.event ||
+      !data.ticket ||
+      !data.Name ||
+      !data.Phone ||
+      !data.Email
+    ) {
+      Alert.alert("Please fill required fields");
       return;
     }
     const payload = {
       data: {
+        event: data.event,
         Name: data.Name,
+        Email: data.Email,
         Phone: data.Phone,
         ticket: data.ticket,
-        event: data.event,
         Auth_Status: !!data.Auth_Status,
+        Agent: data.Agent,
+        SeatNo: data.SeatNo,
+        Note: data.Note,
       },
     };
 
@@ -101,11 +116,15 @@ export default function SaleScreen() {
       if (data.Auth_Status) {
         console.log("offline");
         setData({
-          Name: "",
-          Phone: "",
-          Auth_Status: true,
           event: null,
+          Name: "",
+          Email: "",
+          Phone: "",
           ticket: null,
+          Auth_Status: true,
+          Agent: "",
+          SeatNo: "",
+          Note: "",
         });
         setSoldOut(false);
         setBuyState(1);
@@ -113,98 +132,143 @@ export default function SaleScreen() {
         alert("Ticket Booking complete successfully");
       } else {
         console.log("online");
-        setRouteData({
-          ...routeData,
+        navigation.navigate("generateQR", {
           documentID: resp.data.data.documentId,
         });
-        navigation.navigate("generateQR", { routeData: routeData });
         setData({
-          Name: "",
-          Phone: "",
-          Auth_Status: true,
           event: null,
+          Name: "",
+          Email: "",
+          Phone: "",
           ticket: null,
+          Auth_Status: true,
+          Agent: "",
+          SeatNo: "",
+          Note: "",
         });
         setSoldOut(false);
         setBuyState(1);
         setAvariableTicketType([]);
       }
     } else {
-      alert("Failed to create booking");
-      console.log("Failed to create booking:", resp.data.error);
+      alert("Failed to create ticket booking");
+      console.log("Failed to create ticket booking:", resp.data.error);
     }
   };
+  console.log("Sale Ticket Data : ", data);
+
   return (
-    <SafeAreaView style={tw`flex-1 bg-blue-30 items-center justify-center`}>
-      <Picker
-        selectedValue={buyState}
-        onValueChange={(state) => {
-          setBuyState(state);
-          setData({ ...data, Auth_Status: state == 1 ? true : false });
+    <ScrollView style={tw`flex-1 bg-white px-5 pt-10`}>
+      <SaleTicket.Provider
+        value={{
+          activeTab,
+          changeTicket,
+          handleBooking,
+          soldOut,
+          avariableTicketType,
+          setBuyState,
+          setData,
+          data,
+          buyState,
         }}
-        style={tw`bg-white mb-5 w-[150px] absolute right-5 top-35`}
       >
-        <Picker.Item label="Offline" value={1} />
-        <Picker.Item label="Online" value={2} />
-      </Picker>
-      <View style={tw`flex-1 items-center justify-center`}>
-        {soldOut ? (
-          <Text style={tw`text-5 font-bold text-red-500 mb-5`}>
-            Ticket Sold Out
+        {/* Header */}
+        <Text style={tw`text-3xl font-bold text-indigo-600 leading-tight`}>
+          Offline Ticket{"\n"}Generation
+        </Text>
+        <Text style={tw`text-gray-500 text-sm mt-2 mb-6`}>
+          Create tickets for offline sales manually or in bulk
+        </Text>
+
+        {/* Select Event*/}
+        <View style={tw`bg-white rounded-2xl p-4 mb-5 border border-gray-200`}>
+          <Text style={tw`text-base font-bold text-gray-900 mb-1`}>
+            Select Event <Text style={tw`text-red-500`}>*</Text>
           </Text>
-        ) : (
-          <></>
-        )}
-        <Picker
-          selectedValue={data.event}
-          onValueChange={(eventValue) => {
-            changeEvent(eventValue);
-          }}
-          style={tw`bg-white mb-5 w-[300px]`}
+          <Text style={tw`text-gray-400 text-xs mb-4`}>
+            Choose which event to generate tickets for
+          </Text>
+
+          <View
+            style={tw`border border-gray-200 rounded-xl bg-white overflow-hidden flex-row items-center px-3`}
+          >
+            <Ionicons
+              name="calendar-outline"
+              size={18}
+              color="#6366F1"
+              style={tw`mr-2`}
+            />
+            <Picker
+              selectedValue={data.event}
+              onValueChange={(eventValue) => changeEvent(eventValue)}
+              style={tw`flex-1 h-13 text-sm text-gray-700`}
+            >
+              <Picker.Item
+                label="Select an event"
+                value={null}
+                color="#9CA3AF"
+              />
+              {events.map((event) => (
+                <Picker.Item
+                  key={event.documentId}
+                  label={event.Name}
+                  value={event.documentId}
+                  color="#111827"
+                />
+              ))}
+            </Picker>
+          </View>
+        </View>
+
+        {/* Single / Bulk Toggle */}
+        <View
+          style={tw`flex-row mb-6 border border-gray-200 rounded-xl overflow-hidden`}
         >
-          <Picker.Item label="Select event..." value={0} />
-          {events.map((event) => {
-            return <Picker.Item label={event.Name} value={event.documentId} />;
-          })}
-        </Picker>
-        <Picker
-          selectedValue={data.ticket}
-          enabled={data.event ? true : false}
-          onValueChange={(ticketValue) => {
-            changeTicket(ticketValue);
-          }}
-          style={tw`bg-white mb-5 w-[300px]`}
-        >
-          <Picker.Item label="Select ticket type..." value={0} />
-          {avariableTicketType.map((ticket) => {
-            return (
-              <Picker.Item label={ticket.Name} value={ticket.documentId} />
-            );
-          })}
-        </Picker>
-        <TextInput
-          placeholder="Name"
-          value={data.Name}
-          onChangeText={(name) => {
-            setData({ ...data, Name: name });
-            setRouteData({ ...routeData, name: name });
-          }}
-          style={tw`mb-5 p-4 bg-white w-[300px]`}
-        />
-        <TextInput
-          placeholder="Phone Number"
-          value={data.Phone}
-          onChangeText={(ph) => setData({ ...data, Phone: ph })}
-          keyboardType="number-pad"
-          style={tw`mb-6 p-4 bg-white w-[300px]`}
-        />
-        <TouchableOpacity
-          style={tw`bg-blue-500 p-3.5 rounded-xl w-[150px]`}
-          onPress={handleBooking}
-        >
-          <Text style={tw`text-white text-center font-semibold`}>Booking</Text>
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
+          <TouchableOpacity
+            onPress={() => setActiveTab("single")}
+            style={tw`flex-1 py-3 flex-row items-center justify-center ${
+              activeTab === "single" ? "bg-indigo-600" : "bg-white"
+            }`}
+          >
+            <Ionicons
+              name="add"
+              size={16}
+              color={activeTab === "single" ? "white" : "#6B7280"}
+            />
+            <Text
+              style={tw`ml-1 text-sm font-semibold ${
+                activeTab === "single" ? "text-white" : "text-gray-500"
+              }`}
+            >
+              Single Entry
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => setActiveTab("bulk")}
+            style={tw`flex-1 py-3 flex-row items-center justify-center ${
+              activeTab === "bulk" ? "bg-indigo-600" : "bg-white"
+            }`}
+          >
+            <Ionicons
+              name="cloud-upload-outline"
+              size={16}
+              color={activeTab === "bulk" ? "white" : "#6B7280"}
+            />
+            <Text
+              style={tw`ml-1 text-sm font-semibold ${
+                activeTab === "bulk" ? "text-white" : "text-gray-500"
+              }`}
+            >
+              Bulk Upload
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Manual Ticket Entry Section */}
+        <SingleTab />
+        <BulkTab />
+      </SaleTicket.Provider>
+    </ScrollView>
   );
 }

@@ -35,9 +35,9 @@ export default function LoginPage() {
   };
 
   return (
-    <View style={tw`flex-1 bg-blue-100 items-center justify-center`}>
+    <View style={tw`flex-1 bg-white items-center justify-center`}>
       <Text
-        style={tw`mb-5 text-[25px] italic text-center text-[#0383CE] font-bold`}
+        style={tw`mb-5 text-[25px] italic text-center text-indigo-600 font-bold`}
       >
         Log In
       </Text>
@@ -62,7 +62,7 @@ export default function LoginPage() {
         <></>
       )}
       <TouchableOpacity
-        style={tw`w-[100px] bg-[#0383CE] p-2.5 rounded-lg items-center`}
+        style={tw`w-[100px] bg-indigo-600 p-2.5 rounded-lg items-center`}
         onPress={loginUser}
       >
         <Text style={tw`text-white`}>Log In</Text>

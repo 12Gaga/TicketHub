@@ -23,8 +23,10 @@ export default function SettingScreen() {
     return () => {};
   }, []);
   return (
-    <SafeAreaView style={tw`flex-1 bg-blue-30`}>
-      <Text style={tw`text-[17px] font-bold text-blue-500 underline ml-3 mt-5`}>
+    <SafeAreaView style={tw`flex-1 bg-white`}>
+      <Text
+        style={tw`text-[17px] font-bold text-indigo-600 underline ml-3 mt-5`}
+      >
         Expired Events
       </Text>
 
@@ -46,11 +48,11 @@ export default function SettingScreen() {
           })
       ) : (
         <View style={tw`flex-1 items-center justify-center`}>
-          <Text style={tw`text-blue-400 font-bold`}>No Expired Event</Text>
+          <Text style={tw`text-indigo-600 font-bold`}>No Expired Event</Text>
         </View>
       )}
       <TouchableOpacity
-        style={tw`bg-blue-500 p-3 rounded-lg absolute bottom-0 left-0 right-0 m-4`}
+        style={tw`bg-indigo-600 p-3 rounded-lg absolute bottom-0 left-0 right-0 m-4`}
         onPress={() => {
           UserAuth.logout();
           navigation.navigate("login");
