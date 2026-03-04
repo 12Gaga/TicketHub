@@ -19,7 +19,7 @@
       "type": "text",
       "required": true
     },
-    "Auth_Status": {
+    "Ticket_Status": {
       "type": "boolean",
       "required": true,
       "default": true
@@ -33,6 +33,28 @@
       "type": "relation",
       "relation": "oneToOne",
       "target": "api::ticket.ticket"
+    },
+    "Email": {
+      "type": "email",
+      "required": true
+    },
+    "Payment": {
+      "type": "string"
+    },
+    "Agent": {
+      "type": "string"
+    },
+    "SeatNo": {
+      "type": "string"
+    },
+    "Note": {
+      "type": "text"
+    },
+    "Seller_Id": {
+      "type": "string"
+    },
+    "Scanner_Id": {
+      "type": "string"
     }
   }
 }

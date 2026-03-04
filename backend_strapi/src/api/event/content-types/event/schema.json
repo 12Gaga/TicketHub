@@ -29,6 +29,24 @@
       "relation": "oneToMany",
       "target": "api::ticket-limit.ticket-limit",
       "mappedBy": "event"
+    },
+    "Time": {
+      "type": "time",
+      "required": true,
+      "default": "00:00:00.000"
+    },
+    "Venue": {
+      "type": "text",
+      "required": true
+    },
+    "Description": {
+      "type": "text"
+    },
+    "Terms": {
+      "type": "text"
+    },
+    "Entry_Instruction": {
+      "type": "text"
     }
   }
 }

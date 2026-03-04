@@ -442,12 +442,11 @@ export interface ApiBookedTicketBookedTicket
     draftAndPublish: true;
   };
   attributes: {
-    Auth_Status: Schema.Attribute.Boolean &
-      Schema.Attribute.Required &
-      Schema.Attribute.DefaultTo<true>;
+    Agent: Schema.Attribute.String;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    Email: Schema.Attribute.Email & Schema.Attribute.Required;
     event: Schema.Attribute.Relation<'oneToOne', 'api::event.event'>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
@@ -456,9 +455,47 @@ export interface ApiBookedTicketBookedTicket
     > &
       Schema.Attribute.Private;
     Name: Schema.Attribute.Text & Schema.Attribute.Required;
+    Note: Schema.Attribute.Text;
+    Payment: Schema.Attribute.String;
     Phone: Schema.Attribute.Text & Schema.Attribute.Required;
     publishedAt: Schema.Attribute.DateTime;
+    Scanner_Id: Schema.Attribute.String;
+    SeatNo: Schema.Attribute.String;
+    Seller_Id: Schema.Attribute.String;
     ticket: Schema.Attribute.Relation<'oneToOne', 'api::ticket.ticket'>;
+    Ticket_Status: Schema.Attribute.Boolean &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<true>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiCheckInCheckIn extends Struct.CollectionTypeSchema {
+  collectionName: 'check_ins';
+  info: {
+    displayName: 'CheckIn';
+    pluralName: 'check-ins';
+    singularName: 'check-in';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    DateTime: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    Event_Name: Schema.Attribute.String & Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::check-in.check-in'
+    > &
+      Schema.Attribute.Private;
+    Name: Schema.Attribute.String & Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -480,6 +517,8 @@ export interface ApiEventEvent extends Struct.CollectionTypeSchema {
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     Date: Schema.Attribute.Date & Schema.Attribute.Required;
+    Description: Schema.Attribute.Text;
+    Entry_Instruction: Schema.Attribute.Text;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<'oneToMany', 'api::event.event'> &
       Schema.Attribute.Private;
@@ -488,13 +527,18 @@ export interface ApiEventEvent extends Struct.CollectionTypeSchema {
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<true>;
     publishedAt: Schema.Attribute.DateTime;
+    Terms: Schema.Attribute.Text;
     ticket_limits: Schema.Attribute.Relation<
       'oneToMany',
       'api::ticket-limit.ticket-limit'
     >;
+    Time: Schema.Attribute.Time &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'00:00:00.000'>;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    Venue: Schema.Attribute.Text & Schema.Attribute.Required;
   };
 }
 
@@ -1076,6 +1120,7 @@ declare module '@strapi/strapi' {
       'admin::transfer-token-permission': AdminTransferTokenPermission;
       'admin::user': AdminUser;
       'api::booked-ticket.booked-ticket': ApiBookedTicketBookedTicket;
+      'api::check-in.check-in': ApiCheckInCheckIn;
       'api::event.event': ApiEventEvent;
       'api::ticket-limit.ticket-limit': ApiTicketLimitTicketLimit;
       'api::ticket.ticket': ApiTicketTicket;
