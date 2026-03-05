@@ -9,12 +9,12 @@ import {
   StatusBar,
 } from "react-native";
 import QRCode from "react-native-qrcode-svg";
-import * as MediaLibrary from "expo-media-library";
-import * as FileSystem from "expo-file-system";
+import * as Sharing from "expo-sharing";
+import * as FileSystem from "expo-file-system/legacy";
 import { captureRef } from "react-native-view-shot";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
-import tw from "twrnc";
+import tw from "twrnc"; // adjust path if needed e.g. "../lib/tailwind"
 import { useNavigation } from "@react-navigation/native";
 
 export default function GenerateQRScreen({ route }) {
@@ -64,33 +64,36 @@ export default function GenerateQRScreen({ route }) {
 
   const handleSave = async () => {
     try {
-      const { status } = await MediaLibrary.requestPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert(
-          "Permission Denied",
-          "Allow gallery access to save the QR code.",
-        );
-        return;
-      }
-
       const uri = await captureRef(qrRef, { format: "png", quality: 1 });
+
       const fileName = `TicketHub_QR_${documentId}.png`;
       const destPath = FileSystem.documentDirectory + fileName;
       await FileSystem.copyAsync({ from: uri, to: destPath });
 
-      const asset = await MediaLibrary.createAssetAsync(destPath);
-      await MediaLibrary.createAlbumAsync("TicketHub", asset, false);
+      const isAvailable = await Sharing.isAvailableAsync();
+      if (!isAvailable) {
+        Alert.alert(
+          "Not Available",
+          "Sharing is not supported on this device.",
+        );
+        return;
+      }
 
-      Alert.alert("Saved!", "QR code has been saved to your gallery.");
+      await Sharing.shareAsync(destPath, {
+        mimeType: "image/png",
+        dialogTitle: "Save your QR code",
+        UTI: "public.png",
+      });
     } catch (err) {
       console.error("Save error:", err);
-      Alert.alert("Error", "Failed to save QR code.");
+      Alert.alert("Error", "Failed to share QR code.");
     }
   };
 
   const truncate = (str, n) =>
     str && str.length > n ? str.slice(0, n) + "…" : str;
 
+  //   bg-[#0A0A14]
   return (
     <View style={tw`flex-1 bg-white`}>
       <StatusBar barStyle="light-content" backgroundColor="#0A0A14" />
@@ -175,8 +178,9 @@ export default function GenerateQRScreen({ route }) {
             },
           ]}
         >
+          {/* bg-[#13131F] */}
           <View
-            style={tw`bg-[#13131F] rounded-3xl overflow-hidden border border-violet-900 border-opacity-30`}
+            style={tw`bg-white rounded-3xl overflow-hidden border border-violet-900 border-opacity-30`}
           >
             {/* Top gradient accent */}
             <LinearGradient
@@ -200,8 +204,8 @@ export default function GenerateQRScreen({ route }) {
                   >
                     {"TICKET TYPE"}
                   </Text>
-                  <Text style={tw`text-base font-bold text-violet-50`}>
-                    {truncate(ticketType, 28)}
+                  <Text style={tw`text-base font-bold text-violet-400`}>
+                    {ticketType}
                   </Text>
                 </View>
               </View>
@@ -220,8 +224,8 @@ export default function GenerateQRScreen({ route }) {
                   >
                     {"EVENT"}
                   </Text>
-                  <Text style={tw`text-base font-bold text-violet-50`}>
-                    {truncate(eventName, 28)}
+                  <Text style={tw`text-base font-bold text-violet-400`}>
+                    {eventName}
                   </Text>
                 </View>
               </View>

@@ -1,10 +1,10 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { Image, View } from "react-native";
 import DashboardScreen from "../Screens/Dashboard";
 import ScanScreen from "../Screens/Scan";
-import SaleScreen from "../Screens/Sale";
 import EventScreen from "../Screens/Event";
-import SettingScreen from "../Screens/Setting";
-import { Image, View } from "react-native";
+import OfflineTicketGeneration from "../Screens/Ticket";
+import ReportScreen from "../Screens/Report";
 
 const Tab = createBottomTabNavigator();
 
@@ -102,7 +102,7 @@ export default function BottomTabs() {
       })}
     >
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
-      <Tab.Screen name="Tickets" component={SaleScreen} />
+      <Tab.Screen name="Tickets" component={OfflineTicketGeneration} />
       <Tab.Screen
         name="Scan"
         component={ScanScreen}
@@ -114,7 +114,7 @@ export default function BottomTabs() {
         }}
       />
       <Tab.Screen name="Event" component={EventScreen} />
-      <Tab.Screen name="Report" component={SettingScreen} />
+      <Tab.Screen name="Report" component={ReportScreen} />
     </Tab.Navigator>
   );
 }

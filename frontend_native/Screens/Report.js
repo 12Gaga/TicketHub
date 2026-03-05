@@ -6,7 +6,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useState, useEffect } from "react";
 import globalApi from "../Configs/globalApi";
 
-export default function SettingScreen() {
+export default function ReportScreen() {
   const navigation = useNavigation();
   const [expiredEvents, setExpiredEvents] = useState([]);
   useEffect(() => {

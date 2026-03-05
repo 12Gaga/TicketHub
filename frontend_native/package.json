@@ -19,7 +19,10 @@
     "apisauce": "^3.2.2",
     "expo": "~54.0.33",
     "expo-checkbox": "~5.0.8",
+    "expo-file-system": "~19.0.21",
     "expo-font": "~14.0.11",
+    "expo-linear-gradient": "~15.0.8",
+    "expo-media-library": "~18.2.1",
     "expo-status-bar": "~3.0.9",
     "react": "19.1.0",
     "react-native": "0.81.5",
@@ -27,7 +30,9 @@
     "react-native-safe-area-context": "~5.6.0",
     "react-native-screens": "~4.16.0",
     "react-native-svg": "15.12.1",
-    "twrnc": "^4.16.0"
+    "react-native-view-shot": "4.0.3",
+    "twrnc": "^4.16.0",
+    "expo-sharing": "~14.0.8"
   },
   "private": true
 }

@@ -4,15 +4,18 @@ import {
   TouchableOpacity,
   ScrollView,
   TextInput,
+  Animated,
 } from "react-native";
-import Entypo from "@expo/vector-icons/Entypo";
+import { useRef } from "react";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import tw from "twrnc";
 import { useState, useEffect } from "react";
 import { EventContext } from "../Configs/AuthContext";
 import CreateEvent from "../Components/CreateEvent";
 import SetTicket from "../Components/SetTicket";
 import globalApi from "../Configs/globalApi";
+import EventCard from "../Components/EventCard";
 
 export default function EventScreen() {
   const [createEvent, setCreateEvent] = useState(false);
@@ -58,6 +61,7 @@ export default function EventScreen() {
         console.log("Events:", result.data.data);
         setEvents(result.data.data);
         setFilteredEvents(result.data.data);
+        const eventIds = result.data.data.map((e) => e.documentId);
       } catch (error) {
         console.log("Error:", error);
       }
@@ -124,7 +128,42 @@ export default function EventScreen() {
             style={tw`flex-1 ml-2 text-sm text-gray-700`}
           />
         </View>
-        <Text
+
+        {filteredEvents.length > 0 ? (
+          filteredEvents
+            .sort((a, b) => new Date(a.Date) - new Date(b.Date))
+            .map((event, index) => (
+              <EventCard
+                key={event.documentId}
+                event={event}
+                index={index}
+                onPress={(e) => console.log("Tapped event:", e.documentId)}
+                onEdit={(e) => console.log("Edit:", e.documentId)}
+                onDelete={(e) => clickExpired(e.documentId)}
+              />
+            ))
+        ) : (
+          <View style={tw`items-center justify-center py-16`}>
+            <Ionicons name="calendar-outline" size={48} color="#C7D2FE" />
+            <Text style={tw`text-indigo-400 font-bold mt-3`}>
+              No Events Found
+            </Text>
+            <Text style={tw`text-gray-400 text-sm mt-1`}>
+              Create your first event above
+            </Text>
+          </View>
+        )}
+
+        <View style={tw`h-10`} />
+        <CreateEvent />
+        <SetTicket />
+      </EventContext.Provider>
+    </ScrollView>
+  );
+}
+
+{
+  /* <Text
           style={tw`text-[17px] font-bold text-indigo-600 underline ml-3 mt-5`}
         >
           Lived Events
@@ -162,10 +201,5 @@ export default function EventScreen() {
           <View style={tw`flex-1 items-center justify-center`}>
             <Text style={tw`text-indigo-600 font-bold`}>No Event</Text>
           </View>
-        )}
-        <CreateEvent />
-        <SetTicket />
-      </EventContext.Provider>
-    </ScrollView>
-  );
+        )} */
 }

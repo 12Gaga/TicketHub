@@ -20,8 +20,14 @@ export default function LoginPage() {
       const resp = await globalApi.checkUser(data);
 
       if (resp.ok) {
+        const Login_User = {
+          documentId: resp.data.user.documentId,
+          email: resp.data.user.email,
+          username: resp.data.user.username,
+        };
+        console.log("LogInData", Login_User);
         navigation.navigate("home");
-        await UserAuth.setUserAuth(data);
+        await UserAuth.setUserAuth(Login_User);
         setSuccess(true);
         setData({ identifier: "", password: "" });
       } else {

@@ -5,7 +5,7 @@ import tw from "twrnc";
 import { Ionicons } from "@expo/vector-icons";
 import { SaleTicket } from "../Configs/AuthContext";
 
-export default function SingleTab() {
+export default function SingleEntry() {
   const {
     activeTab,
     changeTicket,
@@ -126,7 +126,7 @@ export default function SingleTab() {
               <TouchableOpacity
                 onPress={() => {
                   setBuyState(1);
-                  setData({ ...data, Auth_Status: true });
+                  setData({ ...data, Ticket_Status: true });
                 }}
                 style={tw`flex-1 flex-row items-center justify-center py-3 rounded-l-xl border border-gray-200 ${
                   buyState === 1
@@ -151,7 +151,7 @@ export default function SingleTab() {
               <TouchableOpacity
                 onPress={() => {
                   setBuyState(2);
-                  setData({ ...data, Auth_Status: false });
+                  setData({ ...data, Ticket_Status: false });
                 }}
                 style={tw`flex-1 flex-row items-center justify-center py-3 rounded-r-xl border border-gray-200 ${
                   buyState === 2
@@ -175,17 +175,24 @@ export default function SingleTab() {
             </View>
           </View>
           {/* Payment Method */}
-          {/* <View style={tw`mb-4`}>
-              <Text style={tw`text-sm font-semibold text-gray-900 mb-1`}>
-                Payment Method
-              </Text>
-              <TouchableOpacity
-                style={tw`flex-row items-center justify-between border border-gray-200 rounded-xl px-4 py-3`}
+          <View style={tw`mb-4`}>
+            <Text style={tw`text-sm font-semibold text-gray-900 mb-1`}>
+              Payment Method
+            </Text>
+            <View style={tw`border border-gray-200 rounded-xl overflow-hidden`}>
+              <Picker
+                selectedValue={data.Payment}
+                onValueChange={(payment) =>
+                  setData({ ...data, Payment: payment })
+                }
+                style={tw`text-sm text-gray-700`}
               >
-                <Text style={tw`text-sm text-gray-700`}>Cash</Text>
-                <Ionicons name="chevron-down" size={18} color="#9CA3AF" />
-              </TouchableOpacity>
-            </View> */}
+                <Picker.Item label="Cash" value="Cash" />
+                <Picker.Item label="Mobile Banking" value="Mobile Banking" />
+                <Picker.Item label="Scan" value="Scan" />
+              </Picker>
+            </View>
+          </View>
 
           {/* Sales Agent / Counter */}
           <View style={tw`mb-4`}>

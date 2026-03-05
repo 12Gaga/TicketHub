@@ -4,7 +4,7 @@ import { SaleTicket } from "../Configs/AuthContext";
 import tw from "twrnc";
 import { Ionicons } from "@expo/vector-icons";
 
-export default function BulkTab() {
+export default function BulkUpload() {
   const { activeTab } = useContext(SaleTicket);
   return (
     <View>

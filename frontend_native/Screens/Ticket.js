@@ -5,18 +5,23 @@ import { View, Text, TouchableOpacity, ScrollView } from "react-native";
 import tw from "twrnc";
 import { Ionicons } from "@expo/vector-icons";
 import { SaleTicket } from "../Configs/AuthContext";
-import SingleTab from "../Components/SingleTab";
-import BulkTab from "../Components/BulkTab";
+import SingleEntry from "../Components/SingleEntry";
+import BulkUpload from "../Components/BulkUpload";
+import UserAuth from "../Configs/UserAuth";
+import { useNavigation } from "@react-navigation/native";
 
 export default function OfflineTicketGeneration() {
+  const navigation = useNavigation();
   const [activeTab, setActiveTab] = useState("single");
+  const [user, setUser] = useState(null);
   const [data, setData] = useState({
     event: null,
     Name: "",
     Email: "",
     Phone: "",
     ticket: null,
-    Auth_Status: true,
+    Ticket_Status: true,
+    Payment: "Cash",
     Agent: "",
     SeatNo: "",
     Note: "",
@@ -37,6 +42,16 @@ export default function OfflineTicketGeneration() {
         console.log("Error:", error);
       }
     };
+    const fetchUser = async () => {
+      try {
+        const User = await UserAuth.getUserAuth();
+        console.log("User:", User);
+        setUser(User.documentId);
+      } catch (error) {
+        console.error("Error", error);
+      }
+    };
+    fetchUser();
     fetchEvents();
     return () => {};
   }, []);
@@ -90,7 +105,8 @@ export default function OfflineTicketGeneration() {
       !data.ticket ||
       !data.Name ||
       !data.Phone ||
-      !data.Email
+      !data.Email ||
+      !user
     ) {
       Alert.alert("Please fill required fields");
       return;
@@ -102,10 +118,12 @@ export default function OfflineTicketGeneration() {
         Email: data.Email,
         Phone: data.Phone,
         ticket: data.ticket,
-        Auth_Status: !!data.Auth_Status,
+        Ticket_Status: !!data.Ticket_Status,
+        Payment: data.Payment,
         Agent: data.Agent,
         SeatNo: data.SeatNo,
         Note: data.Note,
+        Seller_Id: user,
       },
     };
 
@@ -113,7 +131,7 @@ export default function OfflineTicketGeneration() {
 
     if (resp.ok) {
       console.log("ticketResp", resp.data.data);
-      if (data.Auth_Status) {
+      if (data.Ticket_Status) {
         console.log("offline");
         setData({
           event: null,
@@ -121,7 +139,8 @@ export default function OfflineTicketGeneration() {
           Email: "",
           Phone: "",
           ticket: null,
-          Auth_Status: true,
+          Ticket_Status: true,
+          Payment: "Cash",
           Agent: "",
           SeatNo: "",
           Note: "",
@@ -132,8 +151,15 @@ export default function OfflineTicketGeneration() {
         alert("Ticket Booking complete successfully");
       } else {
         console.log("online");
+        console.log("data", resp.data.data);
+        const event_Name = events.find((e) => e.documentId == data.event);
+        const ticket_Type = avariableTicketType.find(
+          (t) => t.documentId == data.ticket,
+        );
         navigation.navigate("generateQR", {
-          documentID: resp.data.data.documentId,
+          documentId: resp.data.data.documentId,
+          ticketType: ticket_Type.Name,
+          eventName: event_Name.Name,
         });
         setData({
           event: null,
@@ -141,7 +167,8 @@ export default function OfflineTicketGeneration() {
           Email: "",
           Phone: "",
           ticket: null,
-          Auth_Status: true,
+          Ticket_Status: true,
+          Payment: "Cash",
           Agent: "",
           SeatNo: "",
           Note: "",
@@ -265,9 +292,8 @@ export default function OfflineTicketGeneration() {
           </TouchableOpacity>
         </View>
 
-        {/* Manual Ticket Entry Section */}
-        <SingleTab />
-        <BulkTab />
+        <SingleEntry />
+        <BulkUpload />
       </SaleTicket.Provider>
     </ScrollView>
   );
