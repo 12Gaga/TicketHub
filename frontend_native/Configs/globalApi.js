@@ -18,7 +18,7 @@ const getEvents = () =>
 const getExpiredEvents = () =>
   api.get("/events?filters[On_Live][$eq]=false&populate=*");
 const setEventTicketLimit = (eventTicket) =>
-  api.post("/ticket-limits", { data: eventTicket });
+  api.post("/ticket-limits?populate=*", { data: eventTicket });
 const setBookedTicket = (bookingData) =>
   api.post("/booked-tickets", { data: bookingData });
 const setEvent = (event) => api.post("/events", { data: event });
@@ -28,7 +28,11 @@ const changeEventStatus = (documentId, status = false) =>
   });
 const getBookedTicket = (ticketID, eventID) =>
   api.get(
-    `/booked-tickets?filters[ticket][documentId][$eq]=${ticketID}&filters[event][documentId][$eq]=${eventID}&filters[createdAt][$gte]=${isoDate}&populate=*`,
+    `/booked-tickets?filters[ticket][documentId][$eq]=${ticketID}&filters[event][documentId][$eq]=${eventID}&populate=*`,
+  );
+const getBookedTicketByEvent = (eventID) =>
+  api.get(
+    `/booked-tickets?filters[event][documentId][$eq]=${eventID}&populate=*`,
   );
 const getTicketLimit = (eventID) =>
   api.get(
@@ -56,4 +60,5 @@ export default {
   setBookedTicket,
   getTicketByDocumentId,
   changeTicketStatus,
+  getBookedTicketByEvent,
 };

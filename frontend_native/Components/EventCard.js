@@ -1,18 +1,10 @@
-import React, { useRef } from "react";
-import { View, Text, TouchableOpacity, Animated } from "react-native";
+import { useRef, useEffect, useState, useContext } from "react";
+import { View, Text, TouchableOpacity, Animated, Modal } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import tw from "twrnc";
-
-/**
- * EventCard
- * Props:
- *   - event      : object  (single event from Strapi)
- *   - onPress    : func    (called with event when card is tapped)
- *   - onEdit     : func    (optional edit handler)
- *   - onDelete   : func    (optional delete handler)
- *   - index      : number  (for staggered animation delay)
- */
+import globalApi from "../Configs/globalApi";
+import { EventContext } from "../Configs/AuthContext";
 
 const GRAD_PALETTES = [
   ["#7C3AED", "#4F46E5"], // violet → indigo
@@ -54,22 +46,22 @@ function getStatus(event) {
   return { label: "Upcoming", color: "#7C3AED", bg: "bg-violet-100" };
 }
 
-function formatRevenue(n) {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M MMK`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K MMK`;
-  return `${n} MMK`;
-}
-
 export default function EventCard({
   event,
   onPress,
+  visible,
+  setVisible,
   onEdit,
-  onDelete,
+  onComplete,
   index = 0,
+  onDelete,
 }) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const palette = GRAD_PALETTES[index % GRAD_PALETTES.length];
   const status = getStatus(event);
+  const [eventBookedTicket, setEventBookedTicket] = useState([]);
+  const [eventTicketType, setEventTicketType] = useState([]);
+  const { createTicketLimit } = useContext(EventContext);
 
   const onPressIn = () =>
     Animated.spring(scaleAnim, {
@@ -83,6 +75,33 @@ export default function EventCard({
       useNativeDriver: true,
       tension: 200,
     }).start();
+
+  useEffect(() => {
+    const fetchBookedTicketsInEvent = async () => {
+      try {
+        const result = await globalApi.getBookedTicketByEvent(event.documentId);
+        console.log("BookedTickets:", result.data.data);
+        setEventBookedTicket(result.data.data);
+      } catch (error) {
+        console.log("Error:", error);
+      }
+    };
+    const fetchTicketTypeInEvent = async () => {
+      try {
+        const result = await globalApi.getTicketLimit(event.documentId);
+        console.log("EventTikcet", result.data.data);
+        let tickets = result.data.data;
+        setEventTicketType(tickets);
+      } catch (error) {
+        console.log("Error:", error);
+      }
+    };
+
+    fetchTicketTypeInEvent();
+    fetchBookedTicketsInEvent();
+
+    return () => {};
+  }, [createTicketLimit]);
 
   return (
     <Animated.View
@@ -211,7 +230,7 @@ export default function EventCard({
                   </Text>
                 </View>
                 <Text style={tw`text-gray-800 text-base font-bold`}>
-                  Get sold ticket
+                  {eventBookedTicket.length}
                 </Text>
               </View>
 
@@ -234,34 +253,87 @@ export default function EventCard({
                   </Text>
                 </View>
                 <Text style={tw`text-gray-800 text-base font-bold`}>
-                  Get Ticket Type
+                  {eventTicketType.length}
                 </Text>
               </View>
             </View>
 
-            {/* ── Capacity bar ── */}
+            {/* ── Capacity bars — limited tickets only ── */}
+            {eventTicketType
+              ?.filter((tl) => tl.isLimited === true)
+              .map((tl) => {
+                const soldTicket = eventBookedTicket.filter(
+                  (booked) => booked.ticket.documentId === tl.ticket.documentId,
+                );
+                const sold = soldTicket.length ?? 0;
+                const limit = tl.Limit ?? 0;
+                const pct =
+                  limit > 0
+                    ? Math.min(100, Math.round((sold / limit) * 100))
+                    : 0;
 
-            <View style={tw`mb-4`}>
-              <View style={tw`flex-row justify-between mb-1.5`}>
-                <Text style={tw`text-gray-400 text-xs font-semibold`}>
-                  Capacity
-                </Text>
-                <Text style={tw`text-gray-500 text-xs font-semibold`}>
-                  do percent
-                </Text>
-              </View>
-              {/* <View style={tw`h-2 bg-gray-100 rounded-full overflow-hidden`}>
-                  <LinearGradient
-                    colors={palette}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={[tw`h-2 rounded-full`, { width: `${capacityPct}%` }]}
-                  />
-                </View> */}
-            </View>
+                return (
+                  <View key={tl.documentId} style={tw`mb-3`}>
+                    <View style={tw`flex-row justify-between mb-1.5`}>
+                      <Text style={tw`text-gray-400 text-xs font-semibold`}>
+                        Capacity for {tl.ticket?.Name ?? "Ticket"}
+                      </Text>
+                      <Text style={tw`text-gray-500 text-xs font-semibold`}>
+                        {sold} / {limit} ({pct}%)
+                      </Text>
+                    </View>
+                    <View
+                      style={tw`h-2 bg-gray-100 rounded-full overflow-hidden`}
+                    >
+                      <LinearGradient
+                        colors={palette}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        style={[tw`h-2 rounded-full`, { width: `${pct}%` }]}
+                      />
+                    </View>
+                  </View>
+                );
+              })}
           </View>
         </View>
       </TouchableOpacity>
+      <Modal
+        visible={visible}
+        transparent
+        animationType="fade"
+        key={event.Name}
+      >
+        <View
+          style={tw`flex-1 bg-white bg-opacity-50 items-center justify-center px-8`}
+        >
+          <View style={tw`bg-white rounded-2xl p-6 w-full`}>
+            <Text style={tw`text-lg font-bold text-gray-800 mb-2`}>
+              Has {event.Name} finished?
+            </Text>
+            <View style={tw`flex-row gap-3`}>
+              {/* Completed */}
+              <TouchableOpacity
+                onPress={() => onComplete?.(event)}
+                style={tw`flex-1 py-3 rounded-xl bg-indigo-600 items-center`}
+              >
+                <Text style={tw`text-white font-semibold text-sm`}>
+                  Finished
+                </Text>
+              </TouchableOpacity>
+              {/* Cancel */}
+              <TouchableOpacity
+                onPress={() => setVisible(false)}
+                style={tw`flex-1 py-3 rounded-xl border border-gray-200 items-center`}
+              >
+                <Text style={tw`text-gray-500 font-semibold text-sm`}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </Animated.View>
   );
 }

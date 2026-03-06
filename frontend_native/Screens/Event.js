@@ -4,11 +4,9 @@ import {
   TouchableOpacity,
   ScrollView,
   TextInput,
-  Animated,
+  Modal,
 } from "react-native";
-import { useRef } from "react";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import tw from "twrnc";
 import { useState, useEffect } from "react";
 import { EventContext } from "../Configs/AuthContext";
@@ -24,6 +22,8 @@ export default function EventScreen() {
   const [tickets, setTickets] = useState([]);
   const [search, setSearch] = useState("");
   const [filteredEvents, setFilteredEvents] = useState([]);
+  const [modalEventId, setModalEventId] = useState(null);
+  const [createTicketLimit, setCreateTicketLimit] = useState({});
   const handleSearch = (text) => {
     setSearch(text);
     if (text.trim() === "") {
@@ -43,6 +43,7 @@ export default function EventScreen() {
         const livedEvents = events.filter(
           (event) => event.documentId != eventDocumentId,
         );
+        setFilteredEvents(livedEvents);
         setEvents(livedEvents);
       } else {
         alert("Failed to update event status");
@@ -61,7 +62,7 @@ export default function EventScreen() {
         console.log("Events:", result.data.data);
         setEvents(result.data.data);
         setFilteredEvents(result.data.data);
-        const eventIds = result.data.data.map((e) => e.documentId);
+        // const eventIds = result.data.data.map((e) => e.documentId);
       } catch (error) {
         console.log("Error:", error);
       }
@@ -75,7 +76,6 @@ export default function EventScreen() {
         console.log("Error:", error);
       }
     };
-
     fetchEvents();
     fetchTickets();
 
@@ -88,10 +88,14 @@ export default function EventScreen() {
           createEvent,
           setCreateEvent,
           ticket,
-          setTicket,
           events,
+          setTicket,
           tickets,
+          filteredEvents,
+          setFilteredEvents,
           setEvents,
+          createTicketLimit,
+          setCreateTicketLimit,
         }}
       >
         <Text style={tw`text-3xl font-bold text-indigo-600 mb-1`}>Events</Text>
@@ -137,9 +141,15 @@ export default function EventScreen() {
                 key={event.documentId}
                 event={event}
                 index={index}
-                onPress={(e) => console.log("Tapped event:", e.documentId)}
+                visible={modalEventId === event.documentId}
+                onDelete={() => setModalEventId(event.documentId)}
+                onComplete={() => {
+                  clickExpired(event.documentId);
+                  setModalEventId(null);
+                }}
+                setVisible={() => setModalEventId(null)}
+                onPress={(e) => setModalEventId(e.documentId)}
                 onEdit={(e) => console.log("Edit:", e.documentId)}
-                onDelete={(e) => clickExpired(e.documentId)}
               />
             ))
         ) : (
@@ -160,46 +170,4 @@ export default function EventScreen() {
       </EventContext.Provider>
     </ScrollView>
   );
-}
-
-{
-  /* <Text
-          style={tw`text-[17px] font-bold text-indigo-600 underline ml-3 mt-5`}
-        >
-          Lived Events
-        </Text>
-
-        {filteredEvents.length ? (
-          filteredEvents
-            .sort((a, b) => new Date(a.Date) - new Date(b.Date))
-            .map((event) => {
-              return (
-                <View
-                  key={event.documentId}
-                  style={tw`p-3 bg-white mx-3 mt-3 rounded-lg flex-row items-center justify-between`}
-                >
-                  <View>
-                    <Text style={tw`text-[15px] font-bold`}>{event.Name}</Text>
-                    <Text style={tw`text-[12px] mt-1`}>
-                      {event.Date.split("-").reverse().join("-")}
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    style={tw`bg-indigo-600 p-2 rounded-xl`}
-                    onPress={() => clickExpired(event.documentId)}
-                  >
-                    <Text
-                      style={tw`text-white text-center font-semibold text-[11px]`}
-                    >
-                      Expired
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              );
-            })
-        ) : (
-          <View style={tw`flex-1 items-center justify-center`}>
-            <Text style={tw`text-indigo-600 font-bold`}>No Event</Text>
-          </View>
-        )} */
 }
