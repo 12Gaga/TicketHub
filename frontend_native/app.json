@@ -20,14 +20,17 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.myat_noe.tickethub"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": [
-      "expo-font",
-      "@react-native-community/datetimepicker"
-    ]
+    "plugins": ["expo-font", "@react-native-community/datetimepicker"],
+    "extra": {
+      "eas": {
+        "projectId": "6350b5b0-d0cc-4f2c-82a8-0c1a98acf753"
+      }
+    }
   }
 }
