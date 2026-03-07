@@ -20,6 +20,7 @@ import QRScanner from "../Components/QRScanner";
 import ManualSearch from "../Components/ManualSearch";
 import ScanTicketDetails from "../Components/ScanTicketDetails";
 import { ScanContext } from "../Configs/AuthContext";
+import CheckInAudience from "../Components/CheckInAudience";
 
 export default function CheckInScreen() {
   const [activeTab, setActiveTab] = useState("scanner"); // "scanner" | "manual"
@@ -117,10 +118,22 @@ export default function CheckInScreen() {
   const handleCheckIn = async () => {
     if (!result?.ticket[0]?.documentId) return;
     try {
+      const ticket = result.ticket[0];
+      // 1. Update Ticket_Status
       const resp = await globalApi.changeTicketStatus(
         result.ticket[0].documentId,
       );
       if (resp.ok) {
+        // 2. Create CheckIn record
+        const checkInPayload = {
+          data: {
+            Name: ticket.Name,
+            DateTime: new Date().toISOString(),
+            event: ticket.event?.documentId,
+          },
+        };
+        await globalApi.createCheckIn(checkInPayload.data);
+        // 3. Update local state
         const updatedTickets = result.ticket.map((t, i) =>
           i === 0 ? { ...t, Ticket_Status: true } : t,
         );
@@ -337,6 +350,8 @@ export default function CheckInScreen() {
 
           {/* Ticket Details */}
           <ScanTicketDetails />
+          {/* Check In Audience */}
+          <CheckInAudience />
         </ScrollView>
       </ScanContext.Provider>
     </View>

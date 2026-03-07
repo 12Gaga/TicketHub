@@ -4,6 +4,7 @@ import { View, Text, TouchableOpacity, TextInput } from "react-native";
 import tw from "twrnc";
 import { Ionicons } from "@expo/vector-icons";
 import { SaleTicket } from "../Configs/AuthContext";
+import { ActivityIndicator } from "react-native";
 
 export default function SingleEntry() {
   const {
@@ -16,6 +17,7 @@ export default function SingleEntry() {
     data,
     buyState,
     handleBooking,
+    loading,
   } = useContext(SaleTicket);
   return (
     <View>
@@ -41,6 +43,7 @@ export default function SingleEntry() {
             </Text>
             <TextInput
               placeholder="Customer Name"
+              value={data.Name}
               style={tw`border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700`}
               placeholderTextColor="#9CA3AF"
               onChangeText={(name) => setData({ ...data, Name: name })}
@@ -54,6 +57,7 @@ export default function SingleEntry() {
             </Text>
             <TextInput
               placeholder="example@example.com"
+              value={data.Email}
               style={tw`border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700`}
               placeholderTextColor="#9CA3AF"
               keyboardType="email-address"
@@ -68,6 +72,7 @@ export default function SingleEntry() {
             </Text>
             <TextInput
               placeholder="+959 123456789"
+              value={data.Phone}
               style={tw`border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700`}
               placeholderTextColor="#9CA3AF"
               keyboardType="phone-pad"
@@ -201,6 +206,7 @@ export default function SingleEntry() {
             </Text>
             <TextInput
               placeholder="Agent 1"
+              value={data.Agent}
               style={tw`border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700`}
               placeholderTextColor="#9CA3AF"
               onChangeText={(agent) => setData({ ...data, Agent: agent })}
@@ -214,6 +220,7 @@ export default function SingleEntry() {
             </Text>
             <TextInput
               placeholder="A-15"
+              value={data.SeatNo}
               style={tw`border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700`}
               placeholderTextColor="#9CA3AF"
               onChangeText={(seat) => setData({ ...data, SeatNo: seat })}
@@ -227,6 +234,7 @@ export default function SingleEntry() {
             </Text>
             <TextInput
               placeholder="Any additional information..."
+              value={data.Note}
               multiline
               numberOfLines={4}
               style={tw`border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 h-24`}
@@ -239,7 +247,12 @@ export default function SingleEntry() {
           {/* Generate Ticket Button */}
           <TouchableOpacity
             style={tw`bg-indigo-600 rounded-xl py-4 flex-row items-center justify-center mb-15 ${
-              data.event && data.ticket && data.Name && data.Phone && data.Email
+              data.event &&
+              data.ticket &&
+              data.Name &&
+              data.Phone &&
+              data.Email &&
+              !soldOut
                 ? "opacity-100"
                 : "opacity-50"
             }`}
@@ -250,14 +263,21 @@ export default function SingleEntry() {
                 data.ticket &&
                 data.Name &&
                 data.Phone &&
-                data.Email
+                data.Email &&
+                !soldOut
               )
             }
           >
-            <Ionicons name="add" size={18} color="white" />
-            <Text style={tw`text-white font-bold text-sm ml-2`}>
-              Generate Ticket
-            </Text>
+            {loading ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <>
+                <Ionicons name="add" size={18} color="white" />
+                <Text style={tw`text-white font-bold text-sm ml-2`}>
+                  Generate Ticket
+                </Text>
+              </>
+            )}
           </TouchableOpacity>
         </View>
       )}

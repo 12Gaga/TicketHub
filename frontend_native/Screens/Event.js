@@ -24,6 +24,7 @@ export default function EventScreen() {
   const [filteredEvents, setFilteredEvents] = useState([]);
   const [modalEventId, setModalEventId] = useState(null);
   const [createTicketLimit, setCreateTicketLimit] = useState({});
+  const [loading, setLoading] = useState(false);
   const handleSearch = (text) => {
     setSearch(text);
     if (text.trim() === "") {
@@ -37,6 +38,7 @@ export default function EventScreen() {
   };
 
   const clickExpired = async (eventDocumentId) => {
+    setLoading(true);
     try {
       const resp = await globalApi.changeEventStatus(eventDocumentId);
       if (resp.ok) {
@@ -52,6 +54,8 @@ export default function EventScreen() {
     } catch (error) {
       console.error(error);
       alert("Error updating event status");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -96,6 +100,8 @@ export default function EventScreen() {
           setEvents,
           createTicketLimit,
           setCreateTicketLimit,
+          loading,
+          setLoading,
         }}
       >
         <Text style={tw`text-3xl font-bold text-indigo-600 mb-1`}>Events</Text>

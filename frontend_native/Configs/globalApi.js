@@ -21,6 +21,8 @@ const setEventTicketLimit = (eventTicket) =>
   api.post("/ticket-limits?populate=*", { data: eventTicket });
 const setBookedTicket = (bookingData) =>
   api.post("/booked-tickets", { data: bookingData });
+const createCheckIn = (checkInData) =>
+  api.post("/check-ins", { data: checkInData });
 const setEvent = (event) => api.post("/events", { data: event });
 const changeEventStatus = (documentId, status = false) =>
   api.put(`/events/${documentId}?locale=fr`, {
@@ -38,6 +40,8 @@ const getTicketLimit = (eventID) =>
   api.get(
     `/ticket-limits?filters[event][documentId][$eq]=${eventID}&populate=*`,
   );
+const getCheckInAudience = (eventID) =>
+  api.get(`/check-ins?filters[event][documentId][$eq]=${eventID}&populate=*`);
 const getTicketByDocumentId = (documentID) =>
   api.get(`/booked-tickets?filters[documentId][$eq]=${documentID}&populate=*`);
 const changeTicketStatus = (documentId, status = true) =>
@@ -59,4 +63,6 @@ export default {
   getTicketByDocumentId,
   changeTicketStatus,
   getBookedTicketByEvent,
+  createCheckIn,
+  getCheckInAudience,
 };

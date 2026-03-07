@@ -26,6 +26,7 @@ export default function OfflineTicketGeneration() {
     SeatNo: "",
     Note: "",
   });
+  const [loading, setLoading] = useState(false);
   const [events, setEvents] = useState([]);
   const [buyState, setBuyState] = useState(1);
   const [ticketLimit, setTicketLimit] = useState([]);
@@ -126,60 +127,63 @@ export default function OfflineTicketGeneration() {
         Seller_Id: user,
       },
     };
+    setLoading(true);
+    try {
+      const resp = await globalApi.setBookedTicket(payload.data);
 
-    const resp = await globalApi.setBookedTicket(payload.data);
-
-    if (resp.ok) {
-      console.log("ticketResp", resp.data.data);
-      if (data.Ticket_Status) {
-        console.log("offline");
-        setData({
-          event: null,
-          Name: "",
-          Email: "",
-          Phone: "",
-          ticket: null,
-          Ticket_Status: true,
-          Payment: "Cash",
-          Agent: "",
-          SeatNo: "",
-          Note: "",
-        });
-        setSoldOut(false);
-        setBuyState(1);
-        setAvariableTicketType([]);
-        alert("Ticket Booking complete successfully");
-      } else {
-        console.log("online");
-        console.log("data", resp.data.data);
-        const event_Name = events.find((e) => e.documentId == data.event);
-        const ticket_Type = avariableTicketType.find(
-          (t) => t.documentId == data.ticket,
-        );
-        navigation.navigate("generateQR", {
-          documentId: resp.data.data.documentId,
-          ticketType: ticket_Type.Name,
-          eventName: event_Name.Name,
-        });
-        setData({
-          event: null,
-          Name: "",
-          Email: "",
-          Phone: "",
-          ticket: null,
-          Ticket_Status: true,
-          Payment: "Cash",
-          Agent: "",
-          SeatNo: "",
-          Note: "",
-        });
-        setSoldOut(false);
-        setBuyState(1);
-        setAvariableTicketType([]);
+      if (resp.ok) {
+        console.log("ticketResp", resp.data.data);
+        if (data.Ticket_Status) {
+          console.log("offline");
+          setData({
+            event: null,
+            Name: "",
+            Email: "",
+            Phone: "",
+            ticket: null,
+            Ticket_Status: true,
+            Payment: "Cash",
+            Agent: "",
+            SeatNo: "",
+            Note: "",
+          });
+          setSoldOut(false);
+          setBuyState(1);
+          setAvariableTicketType([]);
+          alert("Ticket Booking complete successfully");
+        } else {
+          console.log("online");
+          console.log("data", resp.data.data);
+          const event_Name = events.find((e) => e.documentId == data.event);
+          const ticket_Type = avariableTicketType.find(
+            (t) => t.documentId == data.ticket,
+          );
+          setData({
+            event: null,
+            Name: "",
+            Email: "",
+            Phone: "",
+            ticket: null,
+            Ticket_Status: true,
+            Payment: "Cash",
+            Agent: "",
+            SeatNo: "",
+            Note: "",
+          });
+          setSoldOut(false);
+          setBuyState(1);
+          setAvariableTicketType([]);
+          navigation.navigate("generateQR", {
+            documentId: resp.data.data.documentId,
+            ticketType: ticket_Type.Name,
+            eventName: event_Name.Name,
+          });
+        }
       }
-    } else {
+    } catch (err) {
       alert("Failed to create ticket booking");
-      console.log("Failed to create ticket booking:", resp.data.error);
+    } finally {
+      setLoading(false);
     }
   };
   console.log("Sale Ticket Data : ", data);
@@ -197,6 +201,7 @@ export default function OfflineTicketGeneration() {
           setData,
           data,
           buyState,
+          loading,
         }}
       >
         {/* Header */}

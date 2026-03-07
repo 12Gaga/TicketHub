@@ -5,6 +5,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import tw from "twrnc";
 import globalApi from "../Configs/globalApi";
 import { EventContext } from "../Configs/AuthContext";
+import { ActivityIndicator } from "react-native";
 
 const GRAD_PALETTES = [
   ["#7C3AED", "#4F46E5"], // violet → indigo
@@ -61,7 +62,7 @@ export default function EventCard({
   const status = getStatus(event);
   const [eventBookedTicket, setEventBookedTicket] = useState([]);
   const [eventTicketType, setEventTicketType] = useState([]);
-  const { createTicketLimit } = useContext(EventContext);
+  const { createTicketLimit, loading } = useContext(EventContext);
 
   const onPressIn = () =>
     Animated.spring(scaleAnim, {
@@ -309,7 +310,7 @@ export default function EventCard({
         >
           <View style={tw`bg-white rounded-2xl p-6 w-full`}>
             <Text style={tw`text-lg font-bold text-gray-800 mb-2`}>
-              Has {event.Name} finished?
+              Has {event.Name} ended?
             </Text>
             <View style={tw`flex-row gap-3`}>
               {/* Completed */}
@@ -317,9 +318,13 @@ export default function EventCard({
                 onPress={() => onComplete?.(event)}
                 style={tw`flex-1 py-3 rounded-xl bg-indigo-600 items-center`}
               >
-                <Text style={tw`text-white font-semibold text-sm`}>
-                  Finished
-                </Text>
+                {loading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={tw`text-white font-semibold text-sm`}>
+                    Ended
+                  </Text>
+                )}
               </TouchableOpacity>
               {/* Cancel */}
               <TouchableOpacity

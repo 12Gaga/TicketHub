@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import LoginPage from "../Pages/Login";
 import UserAuth from "./UserAuth";
 import HomePage from "../Pages/Home";
-import TicketCheck from "../Pages/TicketCheck";
 import GenerateQRScreenSharing from "../Pages/GenerateQRSharing";
 import GenerateQRScreen from "../Pages/GenerateQR";
 
@@ -40,7 +39,6 @@ export default function Navigations() {
       <Stack.Screen name="login" component={LoginPage} />
       <Stack.Screen name="home" component={HomePage} />
       <Stack.Screen name="generateQR" component={GenerateQRScreenSharing} />
-      <Stack.Screen name="ticketCheck" component={TicketCheck} />
     </Stack.Navigator>
   );
 }

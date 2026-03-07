@@ -332,6 +332,11 @@ export default function GenerateQRScreen({ route }) {
               >
                 Scan to verify ticket
               </Text>
+              <Text
+                style={tw`mt-2 text-xs text-gray-500 tracking-wide font-medium`}
+              >
+                {documentId}
+              </Text>
             </View>
           </View>
         </Animated.View>
@@ -362,14 +367,14 @@ export default function GenerateQRScreen({ route }) {
                 style={tw`mr-2.5`}
               />
               <Text style={tw`text-white text-base font-bold tracking-wide`}>
-                Save to Gallery
+                Save QR Code
               </Text>
             </LinearGradient>
           </TouchableOpacity>
 
           {/* Back to Home */}
           <TouchableOpacity
-            onPress={() => navigation.navigate("home")}
+            onPress={() => navigation.goBack()}
             activeOpacity={0.7}
             style={tw`items-center py-3.5 rounded-2xl border border-violet-800`}
           >

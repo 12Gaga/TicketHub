@@ -5,6 +5,7 @@ import { EventContext } from "../Configs/AuthContext";
 import globalApi from "../Configs/globalApi";
 import tw from "twrnc";
 import Checkbox from "expo-checkbox";
+import { ActivityIndicator } from "react-native";
 
 export default function SetTicket() {
   const [eventTicketData, setEventTicketData] = useState({
@@ -13,8 +14,15 @@ export default function SetTicket() {
     Limit: null,
     isLimited: false,
   });
-  const { ticket, setTicket, events, tickets, setCreateTicketLimit } =
-    useContext(EventContext);
+  const {
+    ticket,
+    setTicket,
+    events,
+    tickets,
+    setCreateTicketLimit,
+    loading,
+    setLoading,
+  } = useContext(EventContext);
 
   const createEventTicket = async () => {
     const payload = {
@@ -25,21 +33,24 @@ export default function SetTicket() {
         Limit: eventTicketData.Limit,
       },
     };
-
-    const resp = await globalApi.setEventTicketLimit(payload.data);
-    console.log("EventTicket", resp.data.data);
-    if (resp.ok) {
-      setEventTicketData({
-        ticket: "",
-        event: "",
-        Limit: null,
-        isLimited: false,
-      });
-      setCreateTicketLimit(resp.data.data);
-      setTicket(false);
-    } else {
+    setLoading(true);
+    try {
+      const resp = await globalApi.setEventTicketLimit(payload.data);
+      console.log("EventTicket", resp.data.data);
+      if (resp.ok) {
+        setEventTicketData({
+          ticket: "",
+          event: "",
+          Limit: null,
+          isLimited: false,
+        });
+        setCreateTicketLimit(resp.data.data);
+        setTicket(false);
+      }
+    } catch (err) {
       alert("Failed to set event ticket");
-      console.log("Failed to set event ticket", resp.data.error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -148,9 +159,13 @@ export default function SetTicket() {
                 disabled={!eventTicketData.event || !eventTicketData.ticket}
                 onPress={createEventTicket}
               >
-                <Text style={tw`text-white text-center font-semibold`}>
-                  Comfirm
-                </Text>
+                {loading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={tw`text-white text-center font-semibold`}>
+                    Comfirm
+                  </Text>
+                )}
               </TouchableOpacity>
               <TouchableOpacity
                 style={tw`bg-indigo-600 p-3 rounded-xl`}

@@ -6,6 +6,7 @@ import { useContext, useState } from "react";
 import { EventContext } from "../Configs/AuthContext";
 import globalApi from "../Configs/globalApi";
 import { Ionicons } from "@expo/vector-icons";
+import { ActivityIndicator } from "react-native";
 
 export default function CreateEvent() {
   const [eventData, setEventData] = useState({
@@ -27,6 +28,8 @@ export default function CreateEvent() {
     setFilteredEvents,
     events,
     setEvents,
+    loading,
+    setLoading,
   } = useContext(EventContext);
   const onChange = (event, selectedDate) => {
     setShow(false);
@@ -46,24 +49,28 @@ export default function CreateEvent() {
         Entry_Instruction: eventData.Entry_Instruction,
       },
     };
-    const resp = await globalApi.setEvent(payload.data);
-    console.log("Event", resp.data.data);
-    if (resp.ok) {
-      setFilteredEvents([...filteredEvents, resp.data.data]);
-      setEvents([...events, resp.data.data]);
-      setEventData({
-        Name: "",
-        Date: new Date(),
-        Time: "",
-        Venue: "",
-        Description: "",
-        Terms: "",
-        Entry_Instruction: "",
-      });
-      setCreateEvent(false);
-    } else {
+    setLoading(true);
+    try {
+      const resp = await globalApi.setEvent(payload.data);
+      console.log("Event", resp.data.data);
+      if (resp.ok) {
+        setFilteredEvents([...filteredEvents, resp.data.data]);
+        setEvents([...events, resp.data.data]);
+        setEventData({
+          Name: "",
+          Date: new Date(),
+          Time: "",
+          Venue: "",
+          Description: "",
+          Terms: "",
+          Entry_Instruction: "",
+        });
+        setCreateEvent(false);
+      }
+    } catch (err) {
       alert("Failed to create event");
-      console.log("Failed to create event:", resp.data.error);
+    } finally {
+      setLoading(false);
     }
   };
   console.log("eventData", eventData);
@@ -240,9 +247,13 @@ export default function CreateEvent() {
                 }
                 onPress={createTheEvent}
               >
-                <Text style={tw`text-white text-center font-semibold`}>
-                  Create Event
-                </Text>
+                {loading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={tw`text-white text-center font-semibold`}>
+                    Create Event
+                  </Text>
+                )}
               </TouchableOpacity>
               <TouchableOpacity
                 style={tw`bg-indigo-600 p-3 rounded-xl`}
