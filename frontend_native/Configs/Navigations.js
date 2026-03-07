@@ -5,6 +5,7 @@ import UserAuth from "./UserAuth";
 import HomePage from "../Pages/Home";
 import TicketCheck from "../Pages/TicketCheck";
 import GenerateQRScreenSharing from "../Pages/GenerateQRSharing";
+import GenerateQRScreen from "../Pages/GenerateQR";
 
 const Stack = createNativeStackNavigator();
 

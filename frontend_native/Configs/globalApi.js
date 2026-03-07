@@ -39,12 +39,10 @@ const getTicketLimit = (eventID) =>
     `/ticket-limits?filters[event][documentId][$eq]=${eventID}&populate=*`,
   );
 const getTicketByDocumentId = (documentID) =>
-  api.get(
-    `/booked-tickets?filters[documentId][$eq]=${documentID}&filters[Auth_Status][$eq]=false&populate=*`,
-  );
+  api.get(`/booked-tickets?filters[documentId][$eq]=${documentID}&populate=*`);
 const changeTicketStatus = (documentId, status = true) =>
   api.put(`/booked-tickets/${documentId}?locale=fr`, {
-    data: { Auth_Status: status },
+    data: { Ticket_Status: status },
   });
 
 export default {

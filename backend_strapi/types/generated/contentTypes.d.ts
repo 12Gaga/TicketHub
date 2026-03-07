@@ -487,7 +487,7 @@ export interface ApiCheckInCheckIn extends Struct.CollectionTypeSchema {
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     DateTime: Schema.Attribute.DateTime & Schema.Attribute.Required;
-    Event_Name: Schema.Attribute.String & Schema.Attribute.Required;
+    event: Schema.Attribute.Relation<'oneToOne', 'api::event.event'>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',

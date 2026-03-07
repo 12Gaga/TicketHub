@@ -20,9 +20,9 @@ import { useNavigation } from "@react-navigation/native";
 export default function GenerateQRScreen({ route }) {
   const navigation = useNavigation();
   const { documentId, ticketType, eventName } = route?.params ?? {
-    documentId: "u52jpr6kwzm8e9fsme397tzm",
-    ticketType: "VIP",
-    eventName: "Rock Night 2026",
+    documentId: "N/A",
+    ticketType: "N/A",
+    eventName: "N/A",
   };
 
   const qrValue = documentId;
@@ -176,7 +176,7 @@ export default function GenerateQRScreen({ route }) {
           ]}
         >
           <View
-            style={tw`bg-[#13131F] rounded-3xl overflow-hidden border border-violet-900 border-opacity-30`}
+            style={tw`bg-white rounded-3xl overflow-hidden border border-violet-900 border-opacity-30`}
           >
             {/* Top gradient accent */}
             <LinearGradient
@@ -200,7 +200,7 @@ export default function GenerateQRScreen({ route }) {
                   >
                     {"TICKET TYPE"}
                   </Text>
-                  <Text style={tw`text-base font-bold text-violet-50`}>
+                  <Text style={tw`text-base font-bold text-violet-400`}>
                     {truncate(ticketType, 28)}
                   </Text>
                 </View>
@@ -220,7 +220,7 @@ export default function GenerateQRScreen({ route }) {
                   >
                     {"EVENT"}
                   </Text>
-                  <Text style={tw`text-base font-bold text-violet-50`}>
+                  <Text style={tw`text-base font-bold text-violet-400`}>
                     {truncate(eventName, 28)}
                   </Text>
                 </View>

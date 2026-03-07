@@ -15,13 +15,14 @@
       "type": "string",
       "required": true
     },
-    "Event_Name": {
-      "type": "string",
-      "required": true
-    },
     "DateTime": {
       "type": "datetime",
       "required": true
+    },
+    "event": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::event.event"
     }
   }
 }
