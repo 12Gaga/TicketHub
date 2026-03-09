@@ -446,7 +446,7 @@ export interface ApiBookedTicketBookedTicket
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    Email: Schema.Attribute.Email & Schema.Attribute.Required;
+    Email: Schema.Attribute.Email;
     event: Schema.Attribute.Relation<'oneToOne', 'api::event.event'>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
@@ -457,12 +457,13 @@ export interface ApiBookedTicketBookedTicket
     Name: Schema.Attribute.Text & Schema.Attribute.Required;
     Note: Schema.Attribute.Text;
     Payment: Schema.Attribute.String;
-    Phone: Schema.Attribute.Text & Schema.Attribute.Required;
+    Phone: Schema.Attribute.Text;
     publishedAt: Schema.Attribute.DateTime;
     Scanner_Id: Schema.Attribute.String;
     SeatNo: Schema.Attribute.String;
     Seller_Id: Schema.Attribute.String;
     ticket: Schema.Attribute.Relation<'oneToOne', 'api::ticket.ticket'>;
+    Ticket_Id: Schema.Attribute.String;
     Ticket_Status: Schema.Attribute.Boolean &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<true>;

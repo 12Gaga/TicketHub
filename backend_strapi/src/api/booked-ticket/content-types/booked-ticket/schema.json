@@ -17,7 +17,7 @@
     },
     "Phone": {
       "type": "text",
-      "required": true
+      "required": false
     },
     "Ticket_Status": {
       "type": "boolean",
@@ -36,7 +36,7 @@
     },
     "Email": {
       "type": "email",
-      "required": true
+      "required": false
     },
     "Payment": {
       "type": "string"
@@ -54,6 +54,9 @@
       "type": "string"
     },
     "Scanner_Id": {
+      "type": "string"
+    },
+    "Ticket_Id": {
       "type": "string"
     }
   }
