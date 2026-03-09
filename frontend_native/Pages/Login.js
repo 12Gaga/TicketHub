@@ -4,16 +4,18 @@ import { View, Text, TextInput, TouchableOpacity } from "react-native";
 import tw from "twrnc";
 import globalApi from "../Configs/globalApi";
 import UserAuth from "../Configs/UserAuth";
+import PopUpAlert from "../Components/PopUpAlert";
 
 export default function LoginPage() {
   const [data, setData] = useState({ identifier: "", password: "" });
   const [success, setSuccess] = useState(true);
+  const [failModal, setFailModal] = useState(false);
   const navigation = useNavigation();
 
   const loginUser = async () => {
     try {
       if (!data.identifier || !data.password) {
-        alert("Please fill all fields");
+        setFailModal(true);
         return;
       }
 
@@ -24,6 +26,7 @@ export default function LoginPage() {
           documentId: resp.data.user.documentId,
           email: resp.data.user.email,
           username: resp.data.user.username,
+          password: data.password,
         };
         console.log("LogInData", Login_User);
         navigation.navigate("home");
@@ -73,6 +76,13 @@ export default function LoginPage() {
       >
         <Text style={tw`text-white`}>Log In</Text>
       </TouchableOpacity>
+      <PopUpAlert
+        success={failModal}
+        text={"Please fill all required fields"}
+        header={"Error!"}
+        ModalCall={() => setFailModal(false)}
+        status={false}
+      />
     </View>
   );
 }

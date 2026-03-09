@@ -39,7 +39,7 @@ export default function SingleEntry() {
 
           <View style={tw`mb-4`}>
             <Text style={tw`text-sm font-semibold text-gray-900 mb-1`}>
-              Full Name <Text style={tw`text-red-500`}>*</Text>
+              Name <Text style={tw`text-red-500`}>*</Text>
             </Text>
             <TextInput
               placeholder="Customer Name"
@@ -53,7 +53,7 @@ export default function SingleEntry() {
           {/* Email Address */}
           <View style={tw`mb-4`}>
             <Text style={tw`text-sm font-semibold text-gray-900 mb-1`}>
-              Email Address <Text style={tw`text-red-500`}>*</Text>
+              Email Address
             </Text>
             <TextInput
               placeholder="example@example.com"
@@ -68,7 +68,7 @@ export default function SingleEntry() {
           {/* Phone Number */}
           <View style={tw`mb-4`}>
             <Text style={tw`text-sm font-semibold text-gray-900 mb-1`}>
-              Phone Number <Text style={tw`text-red-500`}>*</Text>
+              Phone Number
             </Text>
             <TextInput
               placeholder="+959 123456789"
@@ -109,7 +109,7 @@ export default function SingleEntry() {
                     value={null}
                     color="#9CA3AF"
                   />
-                  {avariableTicketType.map((ticket) => (
+                  {(avariableTicketType ?? []).map((ticket) => (
                     <Picker.Item
                       key={ticket.documentId}
                       label={ticket.Name}
@@ -179,6 +179,23 @@ export default function SingleEntry() {
               </TouchableOpacity>
             </View>
           </View>
+          {/* Ticket_Id for offline */}
+          {data.Ticket_Status && (
+            <View style={tw`mb-4`}>
+              <Text style={tw`text-sm font-semibold text-gray-900 mb-1`}>
+                Ticket Id <Text style={tw`text-red-500`}>*</Text>
+              </Text>
+              <TextInput
+                placeholder="Ticket - 1"
+                value={data.Ticket_Id}
+                style={tw`border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700`}
+                placeholderTextColor="#9CA3AF"
+                onChangeText={(ticketId) =>
+                  setData({ ...data, Ticket_Id: ticketId })
+                }
+              />
+            </View>
+          )}
           {/* Payment Method */}
           <View style={tw`mb-4`}>
             <Text style={tw`text-sm font-semibold text-gray-900 mb-1`}>
@@ -250,9 +267,8 @@ export default function SingleEntry() {
               data.event &&
               data.ticket &&
               data.Name &&
-              data.Phone &&
-              data.Email &&
-              !soldOut
+              !soldOut &&
+              (!data.Ticket_Status || data.Ticket_Id)
                 ? "opacity-100"
                 : "opacity-50"
             }`}
@@ -262,9 +278,8 @@ export default function SingleEntry() {
                 data.event &&
                 data.ticket &&
                 data.Name &&
-                data.Phone &&
-                data.Email &&
-                !soldOut
+                !soldOut &&
+                (!data.Ticket_Status || data.Ticket_Id)
               )
             }
           >

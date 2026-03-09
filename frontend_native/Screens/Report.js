@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, ScrollView } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, Image } from "react-native";
 import tw from "twrnc";
 import UserAuth from "../Configs/UserAuth";
 import { useNavigation } from "@react-navigation/native";
@@ -20,6 +20,7 @@ function formatDate(dateStr) {
 
 export default function ReportScreen() {
   const navigation = useNavigation();
+  const [user, setUser] = useState(null);
   const [expiredEvents, setExpiredEvents] = useState([]);
 
   useEffect(() => {
@@ -31,11 +32,57 @@ export default function ReportScreen() {
         console.log("Error:", error);
       }
     };
+
+    const fetchUser = async () => {
+      const storedUser = await UserAuth.getUserAuth();
+      if (storedUser) {
+        setUser(storedUser);
+      }
+    };
+
+    fetchUser();
     fetchExpiredEvents();
   }, []);
 
   return (
     <SafeAreaView style={tw`flex-1 bg-gray-50`}>
+      {/* ── User Profile Card ── */}
+      <View
+        style={[
+          tw`flex-row items-center bg-white rounded-2xl px-4 py-3 border border-gray-100`,
+          {
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.06,
+            shadowRadius: 8,
+            elevation: 3,
+          },
+        ]}
+      >
+        {/* Avatar */}
+        <Image
+          source={require("../assets/default-avatar.jpg")}
+          style={tw`w-12 h-12 rounded-full mr-3`}
+        />
+
+        {/* Name */}
+        <Text style={tw`flex-1 text-base font-bold text-gray-800`}>
+          {user?.username ?? "—"}
+        </Text>
+
+        {/* Logout Button */}
+        <TouchableOpacity
+          style={tw`bg-indigo-700 px-4 py-2 rounded-xl`}
+          onPress={() => {
+            UserAuth.logout();
+            navigation.navigate("login");
+          }}
+        >
+          <Text style={tw`text-white text-xs font-bold tracking-wide`}>
+            LOG OUT
+          </Text>
+        </TouchableOpacity>
+      </View>
       {/* ── Header ── */}
       <View style={tw`px-5 pt-4 pb-3 bg-white border-b border-gray-100`}>
         <Text style={tw`text-3xl font-bold text-indigo-600`}>Reports</Text>
@@ -119,7 +166,7 @@ export default function ReportScreen() {
       </ScrollView>
 
       {/* ── Logout Button ── */}
-      <View
+      {/* <View
         style={[
           tw`absolute bottom-0 left-0 right-0 px-5 pb-6 pt-3 bg-white border-t border-gray-100`,
         ]}
@@ -139,7 +186,7 @@ export default function ReportScreen() {
           />
           <Text style={tw`text-red-500 font-bold text-sm`}>Log Out</Text>
         </TouchableOpacity>
-      </View>
+      </View> */}
     </SafeAreaView>
   );
 }

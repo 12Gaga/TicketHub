@@ -4,6 +4,7 @@ import { View, Text, ScrollView, ActivityIndicator } from "react-native";
 import tw from "twrnc";
 import { Ionicons } from "@expo/vector-icons";
 import globalApi from "../Configs/globalApi";
+import PopUpAlert from "./PopUpAlert";
 
 function formatDateTime(isoString) {
   if (!isoString) return { time: "—", date: "—" };
@@ -25,6 +26,7 @@ export default function CheckInAudience() {
   const [checkInAudience, setCheckInAudience] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [failModal, setFailModal] = useState(false);
 
   const changeEvent = async (eventId) => {
     setSelectedEvent(eventId);
@@ -39,7 +41,7 @@ export default function CheckInAudience() {
         setCheckInAudience(resp.data.data);
       }
     } catch (err) {
-      alert("Error fetching check-ins");
+      setFailModal(true);
     } finally {
       setLoading(false);
     }
@@ -162,6 +164,13 @@ export default function CheckInAudience() {
         )}
 
         <View style={tw`h-2`} />
+        <PopUpAlert
+          success={failModal}
+          text={"Error fetching check-ins audience"}
+          header={"Error!"}
+          ModalCall={() => setFailModal(false)}
+          status={false}
+        />
       </View>
     </View>
   );

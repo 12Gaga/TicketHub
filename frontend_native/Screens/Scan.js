@@ -61,10 +61,35 @@ export default function CheckInScreen() {
     if (!id) return;
     setLoading(true);
     setResult(null);
+    const idLength = id.length;
+    console.log("length", idLength);
     try {
-      const resp = await globalApi.getTicketByDocumentId(id);
+      let resp;
+      if (idLength === 24) {
+        resp = await globalApi.getTicketByDocumentId(id);
+      } else {
+        resp = await globalApi.getTicketByTicketUniqueId(id);
+      }
+
       if (resp.ok && resp.data?.data) {
-        setResult({ success: true, ticket: resp.data.data });
+        const ticketData = resp.data.data;
+
+        // ✅ handle empty array, null, or undefined
+        const isEmpty =
+          ticketData === null ||
+          ticketData === undefined ||
+          (Array.isArray(ticketData) && ticketData.length === 0);
+
+        if (isEmpty) {
+          setResult({ success: false, message: "Ticket not found." });
+        } else {
+          setResult({ success: true, ticket: ticketData });
+        }
+      } else if (resp.status === 404) {
+        // ✅ Strapi returns 404 for invalid documentId
+        setResult({ success: false, message: "Ticket not found." });
+      } else if (!resp.ok) {
+        setResult({ success: false, message: "Ticket not found." });
       } else {
         setResult({ success: false, message: "Ticket not found." });
       }

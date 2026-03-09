@@ -14,8 +14,10 @@ import CreateEvent from "../Components/CreateEvent";
 import SetTicket from "../Components/SetTicket";
 import globalApi from "../Configs/globalApi";
 import EventCard from "../Components/EventCard";
+import PopUpAlert from "../Components/PopUpAlert";
 
 export default function EventScreen() {
+  const [failModal, setFailModal] = useState(false);
   const [createEvent, setCreateEvent] = useState(false);
   const [ticket, setTicket] = useState(false);
   const [events, setEvents] = useState([]);
@@ -48,12 +50,12 @@ export default function EventScreen() {
         setFilteredEvents(livedEvents);
         setEvents(livedEvents);
       } else {
-        alert("Failed to update event status");
+        setFailModal(true);
         console.log("error", resp.problem);
       }
     } catch (error) {
       console.error(error);
-      alert("Error updating event status");
+      setFailModal(true);
     } finally {
       setLoading(false);
     }
@@ -173,6 +175,13 @@ export default function EventScreen() {
         <View style={tw`h-10`} />
         <CreateEvent />
         <SetTicket />
+        <PopUpAlert
+          success={failModal}
+          text={"Failed to update event status"}
+          header={"Failed!"}
+          ModalCall={() => setFailModal(false)}
+          status={false}
+        />
       </EventContext.Provider>
     </ScrollView>
   );

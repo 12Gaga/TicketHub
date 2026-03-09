@@ -6,8 +6,10 @@ import globalApi from "../Configs/globalApi";
 import tw from "twrnc";
 import Checkbox from "expo-checkbox";
 import { ActivityIndicator } from "react-native";
+import PopUpAlert from "./PopUpAlert";
 
 export default function SetTicket() {
+  const [failModal, setFailModal] = useState(false);
   const [eventTicketData, setEventTicketData] = useState({
     ticket: "",
     event: "",
@@ -48,7 +50,7 @@ export default function SetTicket() {
         setTicket(false);
       }
     } catch (err) {
-      alert("Failed to set event ticket");
+      setFailModal(true);
     } finally {
       setLoading(false);
     }
@@ -187,6 +189,13 @@ export default function SetTicket() {
           </View>
         </View>
       </Modal>
+      <PopUpAlert
+        success={failModal}
+        text={"Failed to set event ticket."}
+        header={"Failed!"}
+        ModalCall={() => setFailModal(false)}
+        status={false}
+      />
     </View>
   );
 }

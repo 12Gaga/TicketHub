@@ -165,6 +165,8 @@ export default function GenerateQRScreen({ route }) {
 
         {/* ── Ticket Card ── */}
         <Animated.View
+          ref={qrRef}
+          collapsable={false}
           style={[
             tw`w-full`,
             {
@@ -264,11 +266,7 @@ export default function GenerateQRScreen({ route }) {
             </View>
 
             {/* ── QR Code ── */}
-            <View
-              ref={qrRef}
-              collapsable={false}
-              style={tw`items-center py-7 px-6`}
-            >
+            <View style={tw`items-center py-7 px-6`}>
               {/* White QR frame with purple corner accents */}
               <View style={tw`relative p-4 bg-violet-50 rounded-2xl`}>
                 {/* TL corner */}
@@ -331,11 +329,6 @@ export default function GenerateQRScreen({ route }) {
                 style={tw`mt-3.5 text-xs text-gray-500 tracking-wide font-medium`}
               >
                 Scan to verify ticket
-              </Text>
-              <Text
-                style={tw`mt-2 text-xs text-gray-500 tracking-wide font-medium`}
-              >
-                {documentId}
               </Text>
             </View>
           </View>

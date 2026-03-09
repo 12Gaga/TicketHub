@@ -7,6 +7,7 @@ import { EventContext } from "../Configs/AuthContext";
 import globalApi from "../Configs/globalApi";
 import { Ionicons } from "@expo/vector-icons";
 import { ActivityIndicator } from "react-native";
+import PopUpAlert from "./PopUpAlert";
 
 export default function CreateEvent() {
   const [eventData, setEventData] = useState({
@@ -19,6 +20,7 @@ export default function CreateEvent() {
     Entry_Instruction: "",
   });
   const [show, setShow] = useState(false);
+  const [failModal, setFailModal] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [selectedTime, setSelectedTime] = useState(new Date());
   const {
@@ -68,7 +70,7 @@ export default function CreateEvent() {
         setCreateEvent(false);
       }
     } catch (err) {
-      alert("Failed to create event");
+      setFailModal(true);
     } finally {
       setLoading(false);
     }
@@ -277,6 +279,13 @@ export default function CreateEvent() {
             </View>
           </View>
         </View>
+        <PopUpAlert
+          success={failModal}
+          text={"Failed to create event"}
+          header={"Failed!"}
+          ModalCall={() => setFailModal(false)}
+          status={false}
+        />
       </Modal>
     </View>
   );

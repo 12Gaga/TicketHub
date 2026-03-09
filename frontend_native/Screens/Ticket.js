@@ -9,15 +9,18 @@ import SingleEntry from "../Components/SingleEntry";
 import BulkUpload from "../Components/BulkUpload";
 import UserAuth from "../Configs/UserAuth";
 import { useNavigation } from "@react-navigation/native";
+import PopUpAlert from "../Components/PopUpAlert";
 
 export default function OfflineTicketGeneration() {
   const navigation = useNavigation();
+  const [successModal, setSuccessModal] = useState(false);
+  const [failModal, setFailModal] = useState(false);
   const [activeTab, setActiveTab] = useState("single");
   const [user, setUser] = useState(null);
   const [data, setData] = useState({
     event: null,
     Name: "",
-    Email: "",
+    Email: null,
     Phone: "",
     ticket: null,
     Ticket_Status: true,
@@ -25,6 +28,7 @@ export default function OfflineTicketGeneration() {
     Agent: "",
     SeatNo: "",
     Note: "",
+    Ticket_Id: null,
   });
   const [loading, setLoading] = useState(false);
   const [events, setEvents] = useState([]);
@@ -81,13 +85,16 @@ export default function OfflineTicketGeneration() {
       const resp = await globalApi.getBookedTicket(ticketID, data.event);
       if (resp.ok) {
         console.log("bookedTickets", resp.data.data);
-        const data = ticketLimit.find(
+        const ticketLimitEntry = ticketLimit.find(
           (item) => item.ticket.documentId == ticketID,
         );
-        const limit = data.Limit;
+        const limit = ticketLimitEntry.Limit;
         if (!limit) {
           setSoldOut(false);
-        } else if (resp.data.data.length >= limit && data.isLimited) {
+        } else if (
+          resp.data.data.length >= limit &&
+          ticketLimitEntry.isLimited
+        ) {
           setSoldOut(true);
         } else {
           setSoldOut(false);
@@ -105,9 +112,8 @@ export default function OfflineTicketGeneration() {
       !data.event ||
       !data.ticket ||
       !data.Name ||
-      !data.Phone ||
-      !data.Email ||
-      !user
+      !user ||
+      (data.Ticket_Status && !data.Ticket_Id)
     ) {
       Alert.alert("Please fill required fields");
       return;
@@ -124,33 +130,33 @@ export default function OfflineTicketGeneration() {
         Agent: data.Agent,
         SeatNo: data.SeatNo,
         Note: data.Note,
+        Ticket_Id: data.Ticket_Id,
         Seller_Id: user,
       },
     };
     setLoading(true);
     try {
       const resp = await globalApi.setBookedTicket(payload.data);
-
       if (resp.ok) {
         console.log("ticketResp", resp.data.data);
         if (data.Ticket_Status) {
           console.log("offline");
           setData({
-            event: null,
+            event: data.event,
             Name: "",
-            Email: "",
+            Email: null,
             Phone: "",
-            ticket: null,
+            ticket: data.ticket,
             Ticket_Status: true,
             Payment: "Cash",
-            Agent: "",
+            Agent: data.Agent,
             SeatNo: "",
-            Note: "",
+            Note: data.Note,
+            Ticket_Id: null,
           });
           setSoldOut(false);
           setBuyState(1);
-          setAvariableTicketType([]);
-          alert("Ticket Booking complete successfully");
+          setSuccessModal(true);
         } else {
           console.log("online");
           console.log("data", resp.data.data);
@@ -159,20 +165,20 @@ export default function OfflineTicketGeneration() {
             (t) => t.documentId == data.ticket,
           );
           setData({
-            event: null,
+            event: data.event,
             Name: "",
-            Email: "",
+            Email: null,
             Phone: "",
-            ticket: null,
+            ticket: data.ticket,
             Ticket_Status: true,
             Payment: "Cash",
-            Agent: "",
+            Agent: data.Agent,
             SeatNo: "",
-            Note: "",
+            Note: data.Note,
+            Ticket_Id: null,
           });
           setSoldOut(false);
           setBuyState(1);
-          setAvariableTicketType([]);
           navigation.navigate("generateQR", {
             documentId: resp.data.data.documentId,
             ticketType: ticket_Type.Name,
@@ -181,7 +187,7 @@ export default function OfflineTicketGeneration() {
         }
       }
     } catch (err) {
-      alert("Failed to create ticket booking");
+      setFailModal(true);
     } finally {
       setLoading(false);
     }
@@ -240,7 +246,7 @@ export default function OfflineTicketGeneration() {
                 value={null}
                 color="#9CA3AF"
               />
-              {events.map((event) => (
+              {(events ?? []).map((event) => (
                 <Picker.Item
                   key={event.documentId}
                   label={event.Name}
@@ -299,6 +305,20 @@ export default function OfflineTicketGeneration() {
 
         <SingleEntry />
         <BulkUpload />
+        <PopUpAlert
+          success={successModal}
+          text={"Ticket has been booked successfully."}
+          header={"Booking Complete!"}
+          ModalCall={() => setSuccessModal(false)}
+          status={true}
+        />
+        <PopUpAlert
+          success={failModal}
+          text={"Failed to create ticket booking"}
+          header={"Failed!"}
+          ModalCall={() => setFailModal(false)}
+          status={false}
+        />
       </SaleTicket.Provider>
     </ScrollView>
   );
