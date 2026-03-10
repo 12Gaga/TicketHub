@@ -15,11 +15,11 @@ export default function Navigations() {
   const appState = useRef(AppState.currentState);
   const navigationRef = useRef(null);
 
-  // Initial auth check on cold start
   useEffect(() => {
     const fetchUser = async () => {
       try {
         const storedUser = await UserAuth.getUserAuth();
+        console.log("User", storedUser);
         if (storedUser) {
           const resp = await globalApi.checkUser({
             identifier: storedUser.username,
@@ -27,23 +27,21 @@ export default function Navigations() {
           });
 
           if (resp.ok && resp.data?.jwt) {
-            // ✅ Valid login
             setUser(storedUser);
+            console.log("ok");
           } else if (resp.status === 500) {
-            // ✅ Strapi cold-starting — trust stored user
             console.log("Strapi cold start detected, skipping verification");
             setUser(storedUser);
           } else {
-            // ❌ Invalid credentials
             UserAuth.logout();
             setUser(null);
+            console.log("Invalid user");
           }
         } else {
           setUser(null);
         }
       } catch (error) {
         console.error("Error fetching user:", error);
-        // ✅ On network/parse error, trust stored user
         try {
           const storedUser = await UserAuth.getUserAuth();
           if (storedUser) setUser(storedUser);
@@ -58,7 +56,13 @@ export default function Navigations() {
     fetchUser();
   }, []);
 
-  // AppState check — runs when app comes back from background
+  // ✅ Navigate after navigator mounts and auth resolves
+  useEffect(() => {
+    if (!loading && user) {
+      navigationRef.current?.navigate("home");
+    }
+  }, [loading, user]);
+
   useEffect(() => {
     const subscription = AppState.addEventListener(
       "change",
@@ -75,7 +79,6 @@ export default function Navigations() {
               password: storedUser.password,
             });
 
-            // ✅ Only force logout on 401/400, not on 500 (cold start)
             if (!resp.ok && resp.status !== 500) {
               UserAuth.logout();
               navigationRef.current?.navigate("login");

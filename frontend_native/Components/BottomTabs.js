@@ -1,10 +1,16 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { Image, View } from "react-native";
+import { View } from "react-native";
 import DashboardScreen from "../Screens/Dashboard";
 import ScanScreen from "../Screens/Scan";
 import EventScreen from "../Screens/Event";
 import OfflineTicketGeneration from "../Screens/Ticket";
 import ReportScreen from "../Screens/Report";
+
+import GaugeIcon from "../assets/BottomTabIcons/Gauge.svg";
+import TicketIcon from "../assets/BottomTabIcons/Ticket.svg";
+import BarcodeIcon from "../assets/BottomTabIcons/Barcode.svg";
+import BellIcon from "../assets/BottomTabIcons/Bell.svg";
+import ScrollIcon from "../assets/BottomTabIcons/Scroll.svg";
 
 const Tab = createBottomTabNavigator();
 
@@ -23,26 +29,20 @@ export default function BottomTabs() {
         tabBarIcon: ({ color, size }) => {
           if (route.name === "Dashboard") {
             return (
-              <Image
-                source={require("../assets/BottomTabIcons/Dashboard.png")}
-                style={{
-                  width: size,
-                  height: size,
-                  tintColor: color,
-                  resizeMode: "contain",
-                }}
+              <GaugeIcon
+                width={size}
+                height={size}
+                fill={color}
+                color={color}
               />
             );
           } else if (route.name === "Tickets") {
             return (
-              <Image
-                source={require("../assets/BottomTabIcons/Ticket.png")}
-                style={{
-                  width: size,
-                  height: size,
-                  tintColor: color,
-                  resizeMode: "contain",
-                }}
+              <TicketIcon
+                width={size}
+                height={size}
+                fill={color}
+                color={color}
               />
             );
           } else if (route.name === "Scan") {
@@ -62,39 +62,25 @@ export default function BottomTabs() {
                   elevation: 8,
                 }}
               >
-                <Image
-                  source={require("../assets/BottomTabIcons/Barcode.png")}
-                  style={{
-                    width: 28,
-                    height: 28,
-                    tintColor: "#FFFFFF",
-                    resizeMode: "contain",
-                  }}
+                <BarcodeIcon
+                  width={28}
+                  height={28}
+                  color="#ffffff"
+                  fill={color}
                 />
               </View>
             );
           } else if (route.name === "Event") {
             return (
-              <Image
-                source={require("../assets/BottomTabIcons/Bell.png")}
-                style={{
-                  width: size,
-                  height: size,
-                  tintColor: color,
-                  resizeMode: "contain",
-                }}
-              />
+              <BellIcon width={size} height={size} fill={color} color={color} />
             );
           } else if (route.name === "Report") {
             return (
-              <Image
-                source={require("../assets/BottomTabIcons/Scroll.png")}
-                style={{
-                  width: size,
-                  height: size,
-                  tintColor: color,
-                  resizeMode: "contain",
-                }}
+              <ScrollIcon
+                width={size}
+                height={size}
+                fill={color}
+                color={color}
               />
             );
           }
