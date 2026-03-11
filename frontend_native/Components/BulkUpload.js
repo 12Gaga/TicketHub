@@ -6,14 +6,14 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
+import { Picker } from "@react-native-picker/picker";
 import { useContext, useState } from "react";
 import { SaleTicket } from "../Configs/AuthContext";
 import tw from "twrnc";
 import { Ionicons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
-import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
-import * as FileSystemWrite from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import globalApi from "../Configs/globalApi";
 
 // Parse CSV text into array of ticket objects
@@ -49,7 +49,8 @@ const TEMPLATE_CSV =
   "Name,Email,Phone,Payment,Agent,SeatNo,Note,Ticket_Id\nJohn Doe,john@example.com,+1 555-0100,Cash,AgentName,A1,VIP Guest,TK001";
 
 export default function BulkUpload() {
-  const { activeTab, data } = useContext(SaleTicket);
+  const { activeTab, data, avariableTicketType, changeTicket, soldOut } =
+    useContext(SaleTicket);
   const [csvText, setCsvText] = useState("");
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState([]);
@@ -58,7 +59,7 @@ export default function BulkUpload() {
   const handleDownloadTemplate = async () => {
     try {
       const fileUri = FileSystem.documentDirectory + "ticket_template.csv";
-      await FileSystemWrite.writeAsStringAsync(fileUri, TEMPLATE_CSV);
+      await FileSystem.writeAsStringAsync(fileUri, TEMPLATE_CSV); // use FileSystem, not FileSystemWrite
       await Sharing.shareAsync(fileUri);
     } catch (e) {
       Alert.alert("Error", "Could not download template");
@@ -74,14 +75,35 @@ export default function BulkUpload() {
 
       if (result.canceled) return;
 
-      const content = await FileSystem.readAsStringAsync(result.assets[0].uri);
+      const file = result.assets[0];
+      console.log("Picked file:", file); // check uri in logs
+
+      // Try reading directly first
+      let content = "";
+      try {
+        content = await FileSystem.readAsStringAsync(file.uri);
+      } catch (readErr) {
+        // On some Android devices the uri needs to be copied first
+        const destUri = FileSystem.cacheDirectory + "temp_upload.csv";
+        await FileSystem.copyAsync({ from: file.uri, to: destUri });
+        content = await FileSystem.readAsStringAsync(destUri);
+      }
+
+      console.log("File content:", content); // check content in logs
+
+      if (!content || content.trim() === "") {
+        Alert.alert("Error", "File is empty");
+        return;
+      }
+
       setCsvText(content);
       const rows = parseCSV(content);
       setParsed(rows);
       setPreview(rows.slice(0, 3));
       Alert.alert("Success", `${rows.length} tickets ready to import`);
     } catch (e) {
-      Alert.alert("Error", "Could not read file. Make sure it's a valid CSV.");
+      console.error("File pick error:", e);
+      Alert.alert("Error", e.message); // show actual error instead of generic message
     }
   };
 
@@ -118,8 +140,8 @@ export default function BulkUpload() {
     try {
       const ticketsWithEvent = parsed.map((t) => ({
         ...t,
-        event: data.event, // from parent screen selected event
-        ticket: data.ticket, // from parent screen selected ticket type
+        event: data.event,
+        ticket: data.ticket,
         Ticket_Status: true,
       }));
 
@@ -145,12 +167,62 @@ export default function BulkUpload() {
     <View>
       {activeTab === "bulk" && (
         <View>
+          <View>
+            {soldOut ? (
+              <Text style={tw`text-4 font-bold text-red-500 mb-5 text-center`}>
+                Ticket Sold Out
+              </Text>
+            ) : (
+              <></>
+            )}
+          </View>
           <Text style={tw`text-base font-bold text-gray-900 mb-1`}>
             Bulk Ticket Import
           </Text>
           <Text style={tw`text-gray-400 text-xs mb-4`}>
             Import multiple tickets from CSV data
           </Text>
+          <View style={tw`mb-4`}>
+            <Text style={tw`text-sm font-semibold text-gray-900 mb-1`}>
+              Ticket Type <Text style={tw`text-red-500`}>*</Text>
+            </Text>
+            {!data.event ? (
+              <Text style={tw`text-sm text-gray-400 mt-1 mb-1`}>
+                Select an event first
+              </Text>
+            ) : (
+              <View
+                style={tw`border border-gray-200 rounded-xl bg-white overflow-hidden flex-row items-center px-3`}
+              >
+                <Ionicons
+                  name="ticket-outline"
+                  size={16}
+                  color="#6366F1"
+                  style={tw`mr-2`}
+                />
+                <Picker
+                  selectedValue={data.ticket}
+                  enabled={data.event ? true : false}
+                  onValueChange={(ticketValue) => changeTicket(ticketValue)}
+                  style={tw`flex-1 h-13 text-sm text-gray-700`}
+                >
+                  <Picker.Item
+                    label="Select ticket type"
+                    value={null}
+                    color="#9CA3AF"
+                  />
+                  {(avariableTicketType ?? []).map((ticket) => (
+                    <Picker.Item
+                      key={ticket.documentId}
+                      label={ticket.Name}
+                      value={ticket.documentId}
+                      color="#111827"
+                    />
+                  ))}
+                </Picker>
+              </View>
+            )}
+          </View>
 
           {/* CSV Format Card */}
           <View style={tw`border border-gray-200 rounded-2xl p-4 mb-5`}>
@@ -170,8 +242,10 @@ export default function BulkUpload() {
             </View>
             <View style={tw`border-t border-gray-100 pt-3`}>
               <Text style={tw`text-xs text-gray-400 leading-5`}>
-                Required columns: Name, Email, Phone{"\n"}
-                Payment (optional), Agent (optional)
+                Required columns: Name, Email, Phone, Payment, Agent, SeatNo,
+                Note, Ticket_Id {"\n"}
+                Email (optional), Phone (optional), Agent (optional), Note
+                (optional)
               </Text>
             </View>
           </View>
@@ -188,19 +262,19 @@ export default function BulkUpload() {
           </TouchableOpacity>
 
           {/* Paste CSV Data */}
-          <Text style={tw`text-base font-bold text-gray-900 mb-1`}>
+          {/* <Text style={tw`text-base font-bold text-gray-900 mb-1`}>
             Paste CSV Data
           </Text>
           <TextInput
             multiline
             numberOfLines={5}
-            placeholder={`Name,Email,Phone,Payment,Agent\nJohn Doe,john@example.com,+1 555-0100,Cash,Agent`}
+            placeholder={`Name,Email,Phone,Payment,Agent,SeatNo,Note,Ticket_Id\nJohn Doe,john@example.com,+1 555-0100,Cash,AgentName,A1,VIP Guest,TK001`}
             placeholderTextColor="#9CA3AF"
             value={csvText}
             onChangeText={setCsvText}
             style={tw`border border-gray-200 rounded-2xl px-4 py-3 text-xs text-gray-600 mb-3 h-28`}
             textAlignVertical="top"
-          />
+          /> */}
 
           {/* Preview Button */}
           <TouchableOpacity
