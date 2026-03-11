@@ -24,24 +24,29 @@ function parseCSV(text) {
 
   const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
 
-  return lines.slice(1).map((line, index) => {
+  return lines.slice(1).map((line) => {
     const values = line.split(",").map((v) => v.trim());
     const row = {};
     headers.forEach((header, i) => {
       row[header] = values[i] || "";
     });
+
     return {
       Name: row["name"] || "",
-      Email: row["email"] || "",
+      Email: row["email"] || null,
       Phone: row["phone"] || "",
       Payment: row["payment"] || "Cash",
       Agent: row["agent"] || "",
+      SeatNo: row["seatno"] || "",
+      Note: row["note"] || "",
+      Ticket_Id: row["ticket_id"] || null,
+      Ticket_Status: true,
     };
   });
 }
 
 const TEMPLATE_CSV =
-  "Name,Email,Phone,Payment,Agent\nJohn Doe,john@example.com,+1 555-0100,Cash,AgentName\nJane Smith,jane@example.com,+1 555-0200,Card,AgentName";
+  "Name,Email,Phone,Payment,Agent,SeatNo,Note,Ticket_Id\nJohn Doe,john@example.com,+1 555-0100,Cash,AgentName,A1,VIP Guest,TK001";
 
 export default function BulkUpload() {
   const { activeTab, data } = useContext(SaleTicket);
@@ -100,6 +105,10 @@ export default function BulkUpload() {
       Alert.alert("Error", "Please select an event first");
       return;
     }
+    if (!data.ticket) {
+      Alert.alert("Error", "Please select a ticket type first");
+      return;
+    }
     if (parsed.length === 0) {
       Alert.alert("Error", "No tickets to import. Paste or upload CSV first.");
       return;
@@ -109,8 +118,8 @@ export default function BulkUpload() {
     try {
       const ticketsWithEvent = parsed.map((t) => ({
         ...t,
-        event: data.event,
-        ticket: data.ticket,
+        event: data.event, // from parent screen selected event
+        ticket: data.ticket, // from parent screen selected ticket type
         Ticket_Status: true,
       }));
 
@@ -132,7 +141,6 @@ export default function BulkUpload() {
       setLoading(false);
     }
   };
-
   return (
     <View>
       {activeTab === "bulk" && (

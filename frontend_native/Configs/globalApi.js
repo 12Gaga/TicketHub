@@ -51,6 +51,9 @@ const changeTicketStatus = (documentId, status = true) =>
     data: { Ticket_Status: status },
   });
 
+const bulkCreateTickets = (tickets) =>
+  api.post("/booked-tickets/bulk", { tickets });
+
 export default {
   checkUser,
   getTicket,
@@ -68,4 +71,5 @@ export default {
   createCheckIn,
   getCheckInAudience,
   getTicketByTicketUniqueId,
+  bulkCreateTickets,
 };
