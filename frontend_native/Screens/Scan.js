@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   TextInput,
   ScrollView,
-  ActivityIndicator,
   Animated,
   StatusBar,
   Alert,
@@ -21,6 +20,8 @@ import ManualSearch from "../Components/ManualSearch";
 import ScanTicketDetails from "../Components/ScanTicketDetails";
 import { ScanContext } from "../Configs/AuthContext";
 import CheckInAudience from "../Components/CheckInAudience";
+import UserAuth from "../Configs/UserAuth";
+import BluetoothScanner from "../Components/BuletoothScanner";
 
 export default function CheckInScreen() {
   const [activeTab, setActiveTab] = useState("scanner"); // "scanner" | "manual"
@@ -30,6 +31,7 @@ export default function CheckInScreen() {
   const [manualInput, setManualInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
+  const [user, setUser] = useState(null);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(24)).current;
@@ -53,6 +55,14 @@ export default function CheckInScreen() {
       ]).start();
     }
   }, [result]);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const storedUser = await UserAuth.getUserAuth();
+      if (storedUser) setUser(storedUser);
+    };
+    fetchUser();
+  }, []);
 
   // ── Fetch ticket by documentId ──
   const fetchTicket = async (documentId) => {
@@ -147,6 +157,7 @@ export default function CheckInScreen() {
       // 1. Update Ticket_Status
       const resp = await globalApi.changeTicketStatus(
         result.ticket[0].documentId,
+        user.documentId,
       );
       if (resp.ok) {
         // 2. Create CheckIn record
@@ -190,6 +201,7 @@ export default function CheckInScreen() {
           manualInput,
           setManualInput,
           handleManualSearch,
+          fetchTicket,
         }}
       >
         <StatusBar barStyle="dark-content" backgroundColor="#fff" />
@@ -317,7 +329,7 @@ export default function CheckInScreen() {
                   >
                     <Ionicons name="qr-code-outline" size={24} color="#fff" />
                     <Text style={tw`text-white text-xs font-bold mt-2`}>
-                      QR Scanner
+                      Bluetooth Scanner
                     </Text>
                   </LinearGradient>
                 ) : (
@@ -330,7 +342,7 @@ export default function CheckInScreen() {
                       color="#9CA3AF"
                     />
                     <Text style={tw`text-gray-400 text-xs font-semibold mt-2`}>
-                      QR Scanner
+                      Bluetooth Scanner
                     </Text>
                   </View>
                 )}
@@ -368,7 +380,8 @@ export default function CheckInScreen() {
           </View>
 
           {/* ── QR Scanner Tab Content ── */}
-          <QRScanner />
+          {/* <QRScanner /> */}
+          <BluetoothScanner />
 
           {/* ── Manual Search Tab Content ── */}
           <ManualSearch />

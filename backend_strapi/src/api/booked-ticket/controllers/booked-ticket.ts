@@ -38,6 +38,7 @@ export default factories.createCoreController(
                 Ticket_Status: ticket.Ticket_Status ?? true,
                 event: ticket.event,
                 ticket: ticket.ticket,
+                Seller_Id: ticket.Seller_Id,
               },
             },
           );

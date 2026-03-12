@@ -208,6 +208,7 @@ export default function OfflineTicketGeneration() {
           data,
           buyState,
           loading,
+          user,
         }}
       >
         {/* Header */}

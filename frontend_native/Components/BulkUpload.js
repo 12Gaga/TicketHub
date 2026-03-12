@@ -49,7 +49,7 @@ const TEMPLATE_CSV =
   "Name,Email,Phone,Payment,Agent,SeatNo,Note,Ticket_Id\nJohn Doe,john@example.com,+1 555-0100,Cash,AgentName,A1,VIP Guest,TK001";
 
 export default function BulkUpload() {
-  const { activeTab, data, avariableTicketType, changeTicket, soldOut } =
+  const { activeTab, data, avariableTicketType, changeTicket, soldOut, user } =
     useContext(SaleTicket);
   const [csvText, setCsvText] = useState("");
   const [loading, setLoading] = useState(false);
@@ -143,8 +143,9 @@ export default function BulkUpload() {
         event: data.event,
         ticket: data.ticket,
         Ticket_Status: true,
+        Seller_Id: user,
       }));
-
+      console.log("data", ticketsWithEvent);
       const resp = await globalApi.bulkCreateTickets(ticketsWithEvent);
       if (resp.ok) {
         Alert.alert(

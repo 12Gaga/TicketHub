@@ -10,7 +10,7 @@ import GaugeIcon from "../assets/BottomTabIcons/Gauge.svg";
 import TicketIcon from "../assets/BottomTabIcons/Ticket.svg";
 import BarcodeIcon from "../assets/BottomTabIcons/Barcode.svg";
 import BellIcon from "../assets/BottomTabIcons/Bell.svg";
-import ScrollIcon from "../assets/BottomTabIcons/Scroll.svg";
+import MoreIcon from "../assets/BottomTabIcons/More.svg";
 
 const Tab = createBottomTabNavigator();
 
@@ -74,14 +74,9 @@ export default function BottomTabs() {
             return (
               <BellIcon width={size} height={size} fill={color} color={color} />
             );
-          } else if (route.name === "Report") {
+          } else if (route.name === "More") {
             return (
-              <ScrollIcon
-                width={size}
-                height={size}
-                fill={color}
-                color={color}
-              />
+              <MoreIcon width={size} height={size} fill={color} color={color} />
             );
           }
         },
@@ -100,7 +95,7 @@ export default function BottomTabs() {
         }}
       />
       <Tab.Screen name="Event" component={EventScreen} />
-      <Tab.Screen name="Report" component={ReportScreen} />
+      <Tab.Screen name="More" component={ReportScreen} />
     </Tab.Navigator>
   );
 }
