@@ -1,4 +1,5 @@
 import { Picker } from "@react-native-picker/picker";
+import * as MediaLibrary from "expo-media-library";
 import {
   View,
   Text,
@@ -17,6 +18,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import UserAuth from "../Configs/UserAuth";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Sharing from "expo-sharing";
+import PopUpAlert from "../Components/PopUpAlert";
 
 function formatDate(dateStr) {
   if (!dateStr) return "—";
@@ -51,7 +53,7 @@ function exportToCSV(tickets) {
     t.SeatNo ?? "",
     t.Payment ?? "",
     t.Agent ?? "",
-    t.Ticket_Status ? "Checked In" : "Not Checked In",
+    t.CheckIn_Status ? "Checked In" : "Not Checked In",
     t.Note ?? "",
     formatDate(t.createdAt),
   ]);
@@ -128,6 +130,9 @@ export default function ReportScreen() {
   const [selectedEventName, setSelectedEventName] = useState("");
   const [selectedTicketName, setSelectedTicketName] = useState("");
   const [data, setData] = useState({ event: null, ticket: null });
+  const [failModal, setFailModal] = useState(false);
+  const [successModal, setSuccessModal] = useState(false);
+  const [text, setText] = useState("");
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -179,7 +184,8 @@ export default function ReportScreen() {
 
   const handleExportCSV = async () => {
     if (bookedTickets.length === 0) {
-      Alert.alert("No Data", "No tickets to export.");
+      setText("No Data: No tickets to export.");
+      setFailModal(true);
       return;
     }
     setExporting(true);
@@ -190,24 +196,79 @@ export default function ReportScreen() {
           /\s+/g,
           "_",
         );
-      const fileUri = FileSystem.documentDirectory + fileName;
-      await FileSystem.writeAsStringAsync(fileUri, csv, {
+
+      // Request media library permission
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== "granted") {
+        setText("Permission denied. Cannot save to Downloads.");
+        setFailModal(true);
+        return;
+      }
+
+      // Write to cache first
+      const tempUri = FileSystem.cacheDirectory + fileName;
+      await FileSystem.writeAsStringAsync(tempUri, csv, {
         encoding: FileSystem.EncodingType.UTF8,
       });
-      await Sharing.shareAsync(fileUri, {
-        mimeType: "text/csv",
-        dialogTitle: "Export Report CSV",
-      });
+
+      // Save to Downloads via MediaLibrary
+      const asset = await MediaLibrary.createAssetAsync(tempUri);
+      const album = await MediaLibrary.getAlbumAsync("Download");
+
+      if (album == null) {
+        await MediaLibrary.createAlbumAsync("Download", asset, false);
+      } else {
+        await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
+      }
+
+      // Clean up temp file
+      await FileSystem.deleteAsync(tempUri, { idempotent: true });
+
+      setText(`✅ "${fileName}" saved to Downloads!`);
+      // Add success modal state if not already there
+      setSuccessModal(true);
     } catch (e) {
-      Alert.alert("Error", "Failed to export CSV: " + e.message);
+      setText(`Failed to export CSV: ${e.message}`);
+      setFailModal(true);
     } finally {
       setExporting(false);
     }
   };
 
-  const checkedInCount = bookedTickets.filter((t) => t.Ticket_Status).length;
+  // Sharing
+  // const handleExportCSV = async () => {
+  //   if (bookedTickets.length === 0) {
+  //     setText("No Data : No tickets to export.");
+  //     setFailModal(true);
+  //     return;
+  //   }
+  //   setExporting(true);
+  //   try {
+  //     const csv = exportToCSV(bookedTickets);
+  //     const fileName =
+  //       `report_${selectedEventName}_${selectedTicketName}_${Date.now()}.csv`.replace(
+  //         /\s+/g,
+  //         "_",
+  //       );
+  //     const fileUri = FileSystem.documentDirectory + fileName;
+  //     await FileSystem.writeAsStringAsync(fileUri, csv, {
+  //       encoding: FileSystem.EncodingType.UTF8,
+  //     });
+  //     await Sharing.shareAsync(fileUri, {
+  //       mimeType: "text/csv",
+  //       dialogTitle: "Export Report CSV",
+  //     });
+  //   } catch (e) {
+  //     setText(`Failed to export CSV: ${e.message}`);
+  //     setFailModal(true);
+  //   } finally {
+  //     setExporting(false);
+  //   }
+  // };
+
+  const checkedInCount = bookedTickets.filter((t) => t.CheckIn_Status).length;
   const notCheckedInCount = bookedTickets.filter(
-    (t) => !t.Ticket_Status,
+    (t) => !t.CheckIn_Status,
   ).length;
   const canSearch = !!(data.event && data.ticket);
   console.log("search", canSearch);
@@ -467,7 +528,7 @@ export default function ReportScreen() {
                       {ticket.Payment ?? "—"}
                     </Text>
                     <View style={tw`w-20 items-center`}>
-                      <StatusBadge checked={ticket.Ticket_Status} />
+                      <StatusBadge checked={ticket.CheckIn_Status} />
                     </View>
                   </View>
 
@@ -558,6 +619,20 @@ export default function ReportScreen() {
             </Text>
           </View>
         )}
+        <PopUpAlert
+          success={failModal}
+          text={text}
+          header={"Error!"}
+          ModalCall={() => setFailModal(false)}
+          status={false}
+        />
+        <PopUpAlert
+          success={successModal}
+          text={text}
+          header={"Success"}
+          ModalCall={() => setSuccessModal(false)}
+          status={true}
+        />
       </ScrollView>
     </SafeAreaView>
   );

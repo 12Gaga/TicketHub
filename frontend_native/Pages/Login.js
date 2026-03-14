@@ -5,14 +5,17 @@ import tw from "twrnc";
 import globalApi from "../Configs/globalApi";
 import UserAuth from "../Configs/UserAuth";
 import PopUpAlert from "../Components/PopUpAlert";
+import { ActivityIndicator } from "react-native";
 
 export default function LoginPage() {
   const [data, setData] = useState({ identifier: "", password: "" });
   const [success, setSuccess] = useState(true);
   const [failModal, setFailModal] = useState(false);
   const navigation = useNavigation();
+  const [loading, setLoading] = useState(false);
 
   const loginUser = async () => {
+    setLoading(true);
     try {
       if (!data.identifier || !data.password) {
         setFailModal(true);
@@ -40,6 +43,8 @@ export default function LoginPage() {
     } catch (error) {
       console.log("Error ❌", error);
       setSuccess(false);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -74,7 +79,11 @@ export default function LoginPage() {
         style={tw`w-[100px] bg-indigo-600 p-2.5 rounded-lg items-center`}
         onPress={loginUser}
       >
-        <Text style={tw`text-white`}>Log In</Text>
+        {loading ? (
+          <ActivityIndicator size="small" color="#fff" />
+        ) : (
+          <Text style={tw`text-white`}>Log In</Text>
+        )}
       </TouchableOpacity>
       <PopUpAlert
         success={failModal}

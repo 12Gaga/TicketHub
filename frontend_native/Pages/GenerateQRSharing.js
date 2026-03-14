@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -16,9 +16,14 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import tw from "twrnc"; // adjust path if needed e.g. "../lib/tailwind"
 import { useNavigation } from "@react-navigation/native";
+import PopUpAlert from "../Components/PopUpAlert";
+import * as MediaLibrary from "expo-media-library";
 
 export default function GenerateQRScreen({ route }) {
   const navigation = useNavigation();
+  const [failModal, setFailModal] = useState(false);
+  const [successModal, setSuccessModal] = useState(false);
+  const [text, setText] = useState("");
   const { documentId, ticketType, eventName } = route?.params ?? {
     documentId: "u52jpr6kwzm8e9fsme397tzm",
     ticketType: "VIP",
@@ -66,29 +71,60 @@ export default function GenerateQRScreen({ route }) {
     try {
       const uri = await captureRef(qrRef, { format: "png", quality: 1 });
 
-      const fileName = `TicketHub_QR_${documentId}.png`;
-      const destPath = FileSystem.documentDirectory + fileName;
-      await FileSystem.copyAsync({ from: uri, to: destPath });
-
-      const isAvailable = await Sharing.isAvailableAsync();
-      if (!isAvailable) {
-        Alert.alert(
-          "Not Available",
-          "Sharing is not supported on this device.",
-        );
+      // Request media library permission
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== "granted") {
+        setText("Permission denied. Cannot save to gallery.");
+        setFailModal(true);
         return;
       }
 
-      await Sharing.shareAsync(destPath, {
-        mimeType: "image/png",
-        dialogTitle: "Save your QR code",
-        UTI: "public.png",
-      });
+      // Save directly to gallery
+      const asset = await MediaLibrary.createAssetAsync(uri);
+      const album = await MediaLibrary.getAlbumAsync("Download");
+
+      if (album == null) {
+        await MediaLibrary.createAlbumAsync("Download", asset, false);
+      } else {
+        await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
+      }
+
+      setText("✅ QR Code saved to Downloads!");
+      setSuccessModal(true); // you'll need to add successModal state too
     } catch (err) {
       console.error("Save error:", err);
-      Alert.alert("Error", "Failed to share QR code.");
+      setText("Failed to save QR code.");
+      setFailModal(true);
     }
   };
+
+  // Sharing
+  // const handleSave = async () => {
+  //   try {
+  //     const uri = await captureRef(qrRef, { format: "png", quality: 1 });
+
+  //     const fileName = `TicketHub_QR_${documentId}.png`;
+  //     const destPath = FileSystem.documentDirectory + fileName;
+  //     await FileSystem.copyAsync({ from: uri, to: destPath });
+
+  //     const isAvailable = await Sharing.isAvailableAsync();
+  //     if (!isAvailable) {
+  //       setText("Not Availabl : Sharing is not supported on this device.");
+  //       setFailModal(true);
+  //       return;
+  //     }
+
+  //     await Sharing.shareAsync(destPath, {
+  //       mimeType: "image/png",
+  //       dialogTitle: "Save your QR code",
+  //       UTI: "public.png",
+  //     });
+  //   } catch (err) {
+  //     console.error("Save error:", err);
+  //     setText("Failed to share QR code.");
+  //     setFailModal(true);
+  //   }
+  // };
 
   const truncate = (str, n) =>
     str && str.length > n ? str.slice(0, n) + "…" : str;
@@ -378,6 +414,20 @@ export default function GenerateQRScreen({ route }) {
             </Text>
           </TouchableOpacity>
         </Animated.View>
+        <PopUpAlert
+          success={failModal}
+          text={text}
+          header={"Error!"}
+          ModalCall={() => setFailModal(false)}
+          status={false}
+        />
+        <PopUpAlert
+          success={successModal}
+          text={text}
+          header={"Success"}
+          ModalCall={() => setSuccessModal(false)}
+          status={true}
+        />
       </ScrollView>
     </View>
   );

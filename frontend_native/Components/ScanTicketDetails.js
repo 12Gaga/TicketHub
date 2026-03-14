@@ -71,7 +71,7 @@ export default function ScanTicketDetails() {
               </Text>
               <Text style={tw`text-white text-xs opacity-80`}>
                 {result.success
-                  ? result.ticket[0].Ticket_Status
+                  ? result.ticket[0].CheckIn_Status
                     ? "Already checked in"
                     : "Ready to check in"
                   : result.message}
@@ -92,15 +92,15 @@ export default function ScanTicketDetails() {
               <Row
                 label="Status"
                 value={
-                  result.ticket[0].Ticket_Status
+                  result.ticket[0].CheckIn_Status
                     ? "✅ Checked In"
                     : "⏳ Pending"
                 }
-                highlight={!result.ticket[0].Ticket_Status}
+                highlight={!result.ticket[0].CheckIn_Status}
               />
 
               {/* Check in button */}
-              {!result.ticket[0].Ticket_Status && (
+              {!result.ticket[0].CheckIn_Status && (
                 <TouchableOpacity
                   onPress={handleCheckIn}
                   style={tw`mt-4 rounded-xl overflow-hidden`}

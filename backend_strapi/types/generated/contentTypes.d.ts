@@ -443,6 +443,8 @@ export interface ApiBookedTicketBookedTicket
   };
   attributes: {
     Agent: Schema.Attribute.String;
+    CheckIn_Status: Schema.Attribute.Boolean &
+      Schema.Attribute.DefaultTo<false>;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;

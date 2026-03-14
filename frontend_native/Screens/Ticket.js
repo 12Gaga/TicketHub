@@ -6,7 +6,7 @@ import tw from "twrnc";
 import { Ionicons } from "@expo/vector-icons";
 import { SaleTicket } from "../Configs/AuthContext";
 import SingleEntry from "../Components/SingleEntry";
-import BulkUpload from "../Components/BulkUpload";
+import BulkUploadWithSection from "../Components/BulkUploadWithSection";
 import UserAuth from "../Configs/UserAuth";
 import { useNavigation } from "@react-navigation/native";
 import PopUpAlert from "../Components/PopUpAlert";
@@ -15,6 +15,7 @@ export default function OfflineTicketGeneration() {
   const navigation = useNavigation();
   const [successModal, setSuccessModal] = useState(false);
   const [failModal, setFailModal] = useState(false);
+  const [failedText, setFailedText] = useState("");
   const [activeTab, setActiveTab] = useState("single");
   const [user, setUser] = useState(null);
   const [data, setData] = useState({
@@ -36,6 +37,7 @@ export default function OfflineTicketGeneration() {
   const [ticketLimit, setTicketLimit] = useState([]);
   const [avariableTicketType, setAvariableTicketType] = useState([]);
   const [soldOut, setSoldOut] = useState(false);
+  const [bookedTickets, setBookedTickets] = useState([]);
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -71,6 +73,12 @@ export default function OfflineTicketGeneration() {
         setTicketLimit(resp.data.data);
         const tickets = resp.data.data.map((item) => item.ticket);
         setAvariableTicketType(tickets);
+        const bookedResp = await globalApi.getBookedTicketByEvent(eventID);
+        if (bookedResp.ok) {
+          setBookedTickets(bookedResp.data.data);
+        } else {
+          console.log("error", bookedResp.problem);
+        }
       } else {
         console.log("error", resp.problem);
       }
@@ -115,7 +123,8 @@ export default function OfflineTicketGeneration() {
       !user ||
       (data.Ticket_Status && !data.Ticket_Id)
     ) {
-      Alert.alert("Please fill required fields");
+      setFailedText("Please fill required fields");
+      setFailModal(true);
       return;
     }
     const payload = {
@@ -187,12 +196,16 @@ export default function OfflineTicketGeneration() {
         }
       }
     } catch (err) {
+      setFailedText("Failed to create ticket booking");
       setFailModal(true);
     } finally {
       setLoading(false);
     }
   };
   console.log("Sale Ticket Data : ", data);
+  console.log("Avriable Tikcets : ", avariableTicketType);
+  console.log("Booked Tickcets : ", bookedTickets);
+  console.log("Tickcets limit: ", ticketLimit);
 
   return (
     <ScrollView style={tw`flex-1 bg-white px-5 pt-10`}>
@@ -209,6 +222,9 @@ export default function OfflineTicketGeneration() {
           buyState,
           loading,
           user,
+          bookedTickets,
+          ticketLimit,
+          events,
         }}
       >
         {/* Header */}
@@ -305,7 +321,8 @@ export default function OfflineTicketGeneration() {
         </View>
 
         <SingleEntry />
-        <BulkUpload />
+        {/* <BulkUpload /> */}
+        <BulkUploadWithSection />
         <PopUpAlert
           success={successModal}
           text={"Ticket has been booked successfully."}
@@ -315,7 +332,7 @@ export default function OfflineTicketGeneration() {
         />
         <PopUpAlert
           success={failModal}
-          text={"Failed to create ticket booking"}
+          text={failedText}
           header={"Failed!"}
           ModalCall={() => setFailModal(false)}
           status={false}

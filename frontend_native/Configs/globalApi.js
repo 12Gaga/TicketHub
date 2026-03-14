@@ -48,7 +48,7 @@ const getTicketByTicketUniqueId = (id) =>
   api.get(`/booked-tickets?filters[Ticket_Id][$eq]=${id}&populate=*`);
 const changeTicketStatus = (documentId, scannerId, status = true) =>
   api.put(`/booked-tickets/${documentId}?locale=fr`, {
-    data: { Ticket_Status: status, Scanner_Id: scannerId },
+    data: { CheckIn_Status: status, Scanner_Id: scannerId },
   });
 
 const bulkCreateTickets = (tickets) =>

@@ -22,6 +22,7 @@ import { ScanContext } from "../Configs/AuthContext";
 import CheckInAudience from "../Components/CheckInAudience";
 import UserAuth from "../Configs/UserAuth";
 import BluetoothScanner from "../Components/BuletoothScanner";
+import PopUpAlert from "../Components/PopUpAlert";
 
 export default function CheckInScreen() {
   const [activeTab, setActiveTab] = useState("scanner"); // "scanner" | "manual"
@@ -32,6 +33,9 @@ export default function CheckInScreen() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [user, setUser] = useState(null);
+  const [successModal, setSuccessModal] = useState(false);
+  const [failModal, setFailModal] = useState(false);
+  const [text, setText] = useState("");
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(24)).current;
@@ -154,7 +158,7 @@ export default function CheckInScreen() {
     if (!result?.ticket[0]?.documentId) return;
     try {
       const ticket = result.ticket[0];
-      // 1. Update Ticket_Status
+      // 1. Update CheckIn_Status
       const resp = await globalApi.changeTicketStatus(
         result.ticket[0].documentId,
         user.documentId,
@@ -171,18 +175,20 @@ export default function CheckInScreen() {
         await globalApi.createCheckIn(checkInPayload.data);
         // 3. Update local state
         const updatedTickets = result.ticket.map((t, i) =>
-          i === 0 ? { ...t, Ticket_Status: true } : t,
+          i === 0 ? { ...t, CheckIn_Status: true } : t,
         );
         setResult({ ...result, ticket: updatedTickets });
-        Alert.alert(
-          "✅ Checked In",
-          `${result.ticket[0].Name} has been checked in successfully.`,
+        setText(
+          `✅ Checked In : ${result.ticket[0].Name} has been checked in successfully.`,
         );
+        setSuccessModal(true);
       } else {
-        Alert.alert("Error", "Failed to check in ticket.");
+        setText("Failed to check in ticket.");
+        setFailModal(true);
       }
     } catch {
-      Alert.alert("Error", "Something went wrong.");
+      setText("Something went worng");
+      setFailModal(true);
     }
   };
 
@@ -390,6 +396,20 @@ export default function CheckInScreen() {
           <ScanTicketDetails />
           {/* Check In Audience */}
           <CheckInAudience />
+          <PopUpAlert
+            success={failModal}
+            text={text}
+            header={"Error!"}
+            ModalCall={() => setFailModal(false)}
+            status={false}
+          />
+          <PopUpAlert
+            success={successModal}
+            text={text}
+            header={"Success"}
+            ModalCall={() => setSuccessModal(false)}
+            status={true}
+          />
         </ScrollView>
       </ScanContext.Provider>
     </View>

@@ -58,6 +58,10 @@
     },
     "Ticket_Id": {
       "type": "string"
+    },
+    "CheckIn_Status": {
+      "type": "boolean",
+      "default": false
     }
   }
 }

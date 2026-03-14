@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -16,9 +16,13 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import tw from "twrnc";
 import { useNavigation } from "@react-navigation/native";
+import PopUpAlert from "../Components/PopUpAlert";
 
 export default function GenerateQRScreen({ route }) {
   const navigation = useNavigation();
+  const [successModal, setSuccessModal] = useState(false);
+  const [failModal, setFailModal] = useState(false);
+  const [text, setText] = useState("");
   const { documentId, ticketType, eventName } = route?.params ?? {
     documentId: "N/A",
     ticketType: "N/A",
@@ -66,10 +70,10 @@ export default function GenerateQRScreen({ route }) {
     try {
       const { status } = await MediaLibrary.requestPermissionsAsync();
       if (status !== "granted") {
-        Alert.alert(
-          "Permission Denied",
-          "Allow gallery access to save the QR code.",
+        setText(
+          "Permission Denied : Allow gallery access to save the QR code.",
         );
+        setFailModal(true);
         return;
       }
 
@@ -80,11 +84,12 @@ export default function GenerateQRScreen({ route }) {
 
       const asset = await MediaLibrary.createAssetAsync(destPath);
       await MediaLibrary.createAlbumAsync("TicketHub", asset, false);
-
-      Alert.alert("Saved!", "QR code has been saved to your gallery.");
+      setText("QR code has been saved to your gallery.");
+      setSuccessModal(true);
     } catch (err) {
       console.error("Save error:", err);
-      Alert.alert("Error", "Failed to save QR code.");
+      setText("Failed to save QR code.");
+      setFailModal(true);
     }
   };
 
@@ -376,6 +381,20 @@ export default function GenerateQRScreen({ route }) {
             </Text>
           </TouchableOpacity>
         </Animated.View>
+        <PopUpAlert
+          success={failModal}
+          text={text}
+          header={"Error!"}
+          ModalCall={() => setFailModal(false)}
+          status={false}
+        />
+        <PopUpAlert
+          success={successModal}
+          text={text}
+          header={"Success"}
+          ModalCall={() => setSuccessModal(false)}
+          status={true}
+        />
       </ScrollView>
     </View>
   );
