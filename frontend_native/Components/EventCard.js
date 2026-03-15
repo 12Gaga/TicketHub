@@ -132,17 +132,21 @@ export default function EventCard({
             colors={palette}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={tw`px-5 pt-4 pb-5`}
+            style={tw`px-5 pt-5 pb-2`}
           >
             {/* Status badge + actions row */}
             <View style={tw`flex-row items-center justify-between mb-3`}>
+              {/* Event name */}
+              <Text style={tw`text-white text-2xl font-bold tracking-tight`}>
+                {event.Name}
+              </Text>
               <View style={tw`bg-white bg-opacity-20 px-3 py-1 rounded-full`}>
                 <Text style={tw`text-white text-xs font-bold tracking-wide`}>
                   {status.label}
                 </Text>
               </View>
 
-              <View style={tw`flex-row gap-2`}>
+              {/* <View style={tw`flex-row gap-2`}>
                 {onEdit && (
                   <TouchableOpacity
                     onPress={() => onEdit?.(event)}
@@ -159,13 +163,8 @@ export default function EventCard({
                     <Ionicons name="trash-outline" size={15} color="#fff" />
                   </TouchableOpacity>
                 )}
-              </View>
+              </View> */}
             </View>
-
-            {/* Event name */}
-            <Text style={tw`text-white text-2xl font-bold tracking-tight`}>
-              {event.Name}
-            </Text>
           </LinearGradient>
 
           {/* ── Details ── */}
@@ -231,7 +230,7 @@ export default function EventCard({
                   </Text>
                 </View>
                 <Text style={tw`text-gray-800 text-base font-bold`}>
-                  {eventBookedTicket.length}
+                  {(eventBookedTicket ?? []).length}
                 </Text>
               </View>
 
@@ -254,16 +253,16 @@ export default function EventCard({
                   </Text>
                 </View>
                 <Text style={tw`text-gray-800 text-base font-bold`}>
-                  {eventTicketType.length}
+                  {(eventTicketType ?? []).length}
                 </Text>
               </View>
             </View>
 
             {/* ── Capacity bars — limited tickets only ── */}
-            {eventTicketType
+            {(eventTicketType ?? [])
               ?.filter((tl) => tl.isLimited === true)
               .map((tl) => {
-                const soldTicket = eventBookedTicket.filter(
+                const soldTicket = (eventBookedTicket ?? []).filter(
                   (booked) => booked.ticket.documentId === tl.ticket.documentId,
                 );
                 const sold = soldTicket.length ?? 0;

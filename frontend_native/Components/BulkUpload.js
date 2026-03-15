@@ -325,7 +325,7 @@ export default function BulkUpload() {
               </TouchableOpacity>
 
               {/* Preview List */}
-              {preview.length > 0 && (
+              {(preview ?? []).length > 0 && (
                 <View style={tw`border border-gray-200 rounded-2xl p-4 mb-5`}>
                   <Text style={tw`text-sm font-bold text-gray-900 mb-3`}>
                     Preview

@@ -77,7 +77,7 @@ export default function CheckInAudience() {
           style={tw`flex-1 h-13 text-sm text-gray-700`}
         >
           <Picker.Item label="Select an event" value={null} color="#9CA3AF" />
-          {events.map((event) => (
+          {(events ?? []).map((event) => (
             <Picker.Item
               key={event.documentId}
               label={event.Name}
@@ -118,16 +118,16 @@ export default function CheckInAudience() {
               Select an event to view check-ins
             </Text>
           </View>
-        ) : checkInAudience.length === 0 ? (
+        ) : (checkInAudience ?? []).length === 0 ? (
           <View style={tw`items-center py-10`}>
             <Ionicons name="people-outline" size={32} color="#E0E7FF" />
             <Text style={tw`text-gray-400 text-sm mt-2`}>No check-ins yet</Text>
           </View>
         ) : (
           <ScrollView style={tw`max-h-96`} showsVerticalScrollIndicator={false}>
-            {checkInAudience.map((item, index) => {
+            {(checkInAudience ?? []).map((item, index) => {
               const { time, date } = formatDateTime(item.DateTime);
-              const isLast = index === checkInAudience.length - 1;
+              const isLast = index === (checkInAudience ?? []).length - 1;
 
               return (
                 <View key={item.documentId ?? index}>

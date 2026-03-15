@@ -243,7 +243,7 @@ export default function BulkUpload() {
   // ── Download Template ──────────────────────────────────────
   const handleDownloadTemplate = async () => {
     try {
-      if (!avariableTicketType || avariableTicketType.length === 0) {
+      if (!avariableTicketType || (avariableTicketType ?? []).length === 0) {
         setText("No ticket types available for this event.");
         setFailModal(true);
         return;
@@ -581,7 +581,7 @@ export default function BulkUpload() {
                   })}
 
                   {/* Preview — first 3 rows across all sections */}
-                  {preview.length > 0 && (
+                  {(preview ?? []).length > 0 && (
                     <>
                       <Text
                         style={tw`text-xs font-bold text-gray-700 mt-4 mb-2`}

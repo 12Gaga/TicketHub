@@ -125,18 +125,18 @@ export default function DashboardScreen() {
   };
 
   // ── Derived stats ──
-  const totalTickets = bookedTickets.length;
+  const totalTickets = (bookedTickets ?? []).length;
 
   // Online = Ticket_Id is blank/null, Offline = Ticket_Id has a value
-  const onlineTickets = bookedTickets.filter(
+  const onlineTickets = (bookedTickets ?? []).filter(
     (t) => !t.Ticket_Id || t.Ticket_Id.trim() === "",
   ).length;
-  const offlineTickets = bookedTickets.filter(
+  const offlineTickets = (bookedTickets ?? []).filter(
     (t) => t.Ticket_Id && t.Ticket_Id.trim() !== "",
   ).length;
 
   // Check-in rate = checkIn count / totalTickets
-  const checkInCount = checkIn.length;
+  const checkInCount = (checkIn ?? []).length;
   const checkInRate =
     totalTickets > 0 ? ((checkInCount / totalTickets) * 100).toFixed(1) : "0.0";
 

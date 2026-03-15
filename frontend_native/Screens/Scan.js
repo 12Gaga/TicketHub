@@ -92,7 +92,7 @@ export default function CheckInScreen() {
         const isEmpty =
           ticketData === null ||
           ticketData === undefined ||
-          (Array.isArray(ticketData) && ticketData.length === 0);
+          (Array.isArray(ticketData) && (ticketData ?? []).length === 0);
 
         if (isEmpty) {
           setResult({ success: false, message: "Ticket not found." });

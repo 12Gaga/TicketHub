@@ -32,7 +32,7 @@ export default function EventScreen() {
     if (text.trim() === "") {
       setFilteredEvents(events);
     } else {
-      const filtered = events.filter((event) =>
+      const filtered = (events ?? []).filter((event) =>
         event.Name.toLowerCase().includes(text.toLowerCase()),
       );
       setFilteredEvents(filtered);
@@ -44,7 +44,7 @@ export default function EventScreen() {
     try {
       const resp = await globalApi.changeEventStatus(eventDocumentId);
       if (resp.ok) {
-        const livedEvents = events.filter(
+        const livedEvents = (events ?? []).filter(
           (event) => event.documentId != eventDocumentId,
         );
         setFilteredEvents(livedEvents);
@@ -141,7 +141,7 @@ export default function EventScreen() {
           />
         </View>
 
-        {filteredEvents.length > 0 ? (
+        {(filteredEvents ?? []).length > 0 ? (
           filteredEvents
             .sort((a, b) => new Date(a.Date) - new Date(b.Date))
             .map((event, index) => (

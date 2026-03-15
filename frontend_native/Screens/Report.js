@@ -183,7 +183,7 @@ export default function ReportScreen() {
   };
 
   const handleExportCSV = async () => {
-    if (bookedTickets.length === 0) {
+    if ((bookedTickets ?? []).length === 0) {
       setText("No Data: No tickets to export.");
       setFailModal(true);
       return;
@@ -266,8 +266,10 @@ export default function ReportScreen() {
   //   }
   // };
 
-  const checkedInCount = bookedTickets.filter((t) => t.CheckIn_Status).length;
-  const notCheckedInCount = bookedTickets.filter(
+  const checkedInCount = (bookedTickets ?? []).filter(
+    (t) => t.CheckIn_Status,
+  ).length;
+  const notCheckedInCount = (bookedTickets ?? []).filter(
     (t) => !t.CheckIn_Status,
   ).length;
   const canSearch = !!(data.event && data.ticket);
@@ -446,11 +448,11 @@ export default function ReportScreen() {
         </View>
 
         {/* ── Results ── */}
-        {bookedTickets.length > 0 && (
+        {(bookedTickets ?? []).length > 0 && (
           <>
             {/* Summary */}
             <SummaryCard
-              total={bookedTickets.length}
+              total={(bookedTickets ?? []).length}
               checkedIn={checkedInCount}
               notCheckedIn={notCheckedInCount}
             />
@@ -460,7 +462,7 @@ export default function ReportScreen() {
               <Text style={tw`text-base font-bold text-gray-900`}>
                 Results{" "}
                 <Text style={tw`text-indigo-500`}>
-                  ({bookedTickets.length})
+                  ({(bookedTickets ?? []).length})
                 </Text>
               </Text>
               <Text style={tw`text-xs text-gray-400`}>
@@ -495,7 +497,7 @@ export default function ReportScreen() {
               </View>
 
               {/* Rows */}
-              {bookedTickets.map((ticket, index) => (
+              {(bookedTickets ?? []).map((ticket, index) => (
                 <View key={ticket.documentId}>
                   {/* Main Row */}
                   <View
@@ -611,7 +613,7 @@ export default function ReportScreen() {
         )}
 
         {/* Empty State */}
-        {!loading && bookedTickets.length === 0 && canSearch && (
+        {!loading && (bookedTickets ?? []).length === 0 && canSearch && (
           <View style={tw`items-center py-16`}>
             <Ionicons name="ticket-outline" size={48} color="#D1D5DB" />
             <Text style={tw`text-gray-400 font-semibold mt-3`}>

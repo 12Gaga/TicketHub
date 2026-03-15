@@ -89,10 +89,10 @@ export default function SetTicket() {
                 onValueChange={(eventValue) => {
                   setEventTicketData({ ...eventTicketData, event: eventValue });
                 }}
-                style={tw`bg-[#eee] mb-5`}
+                style={tw`bg-[#eee] mb-5 text-gray-700`}
               >
                 <Picker.Item label="Select event..." value={0} />
-                {events.map((event) => {
+                {(events ?? []).map((event) => {
                   return (
                     <Picker.Item
                       key={event.documentId}
@@ -116,10 +116,10 @@ export default function SetTicket() {
                     ticket: ticketValue,
                   });
                 }}
-                style={tw`bg-[#eee] mb-5`}
+                style={tw`bg-[#eee] mb-5 text-gray-700`}
               >
                 <Picker.Item label="Select ticket type..." value={0} />
-                {tickets.map((ticket) => {
+                {(tickets ?? []).map((ticket) => {
                   return (
                     <Picker.Item
                       key={ticket.documentId}
