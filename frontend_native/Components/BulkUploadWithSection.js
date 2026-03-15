@@ -240,6 +240,32 @@ export default function BulkUpload() {
       .replace(/ /g, "_");
   };
 
+  const saveToDownloads = async (fileName, content) => {
+    // Request SAF permission for Downloads folder
+    const permissions =
+      await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync(
+        "content://com.android.externalstorage.documents/tree/primary%3ADownload",
+      );
+
+    if (!permissions.granted) {
+      throw new Error("Permission denied. Cannot save to Downloads.");
+    }
+
+    // Create file in the selected directory
+    const fileUri = await FileSystem.StorageAccessFramework.createFileAsync(
+      permissions.directoryUri,
+      fileName,
+      "text/csv",
+    );
+
+    // Write content
+    await FileSystem.writeAsStringAsync(fileUri, content, {
+      encoding: FileSystem.EncodingType.UTF8,
+    });
+
+    return fileUri;
+  };
+
   // ── Download Template ──────────────────────────────────────
   const handleDownloadTemplate = async () => {
     try {
@@ -253,32 +279,7 @@ export default function BulkUpload() {
       const eventName = getEventName();
       const fileName = `${eventName}_template.csv`;
 
-      // Request media library permission
-      const { status } = await MediaLibrary.requestPermissionsAsync();
-      if (status !== "granted") {
-        setText("Permission denied. Cannot save to Downloads.");
-        setFailModal(true);
-        return;
-      }
-
-      // Write to app cache directory first
-      const tempUri = FileSystem.cacheDirectory + fileName;
-      await FileSystem.writeAsStringAsync(tempUri, csvContent, {
-        encoding: FileSystem.EncodingType.UTF8,
-      });
-
-      // Save from cache to device Downloads via MediaLibrary
-      const asset = await MediaLibrary.createAssetAsync(tempUri);
-      const album = await MediaLibrary.getAlbumAsync("Download");
-
-      if (album == null) {
-        await MediaLibrary.createAlbumAsync("Download", asset, false);
-      } else {
-        await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
-      }
-
-      // Clean up temp file
-      await FileSystem.deleteAsync(tempUri, { idempotent: true });
+      await saveToDownloads(fileName, csvContent);
 
       setText(`✅ "${fileName}" saved to Downloads!`);
       setSuccessModal(true);

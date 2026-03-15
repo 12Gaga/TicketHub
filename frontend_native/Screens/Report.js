@@ -1,5 +1,4 @@
 import { Picker } from "@react-native-picker/picker";
-import * as MediaLibrary from "expo-media-library";
 import {
   View,
   Text,
@@ -7,7 +6,7 @@ import {
   Image,
   ScrollView,
   ActivityIndicator,
-  Alert,
+  Platform,
 } from "react-native";
 import tw from "twrnc";
 import { Ionicons } from "@expo/vector-icons";
@@ -17,7 +16,6 @@ import { useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import UserAuth from "../Configs/UserAuth";
 import * as FileSystem from "expo-file-system/legacy";
-import * as Sharing from "expo-sharing";
 import PopUpAlert from "../Components/PopUpAlert";
 
 function formatDate(dateStr) {
@@ -196,36 +194,35 @@ export default function ReportScreen() {
           /\s+/g,
           "_",
         );
+      if (Platform.OS === "android") {
+        const permissions =
+          await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
 
-      // Request media library permission
-      const { status } = await MediaLibrary.requestPermissionsAsync();
-      if (status !== "granted") {
-        setText("Permission denied. Cannot save to Downloads.");
-        setFailModal(true);
-        return;
-      }
+        if (!permissions.granted) {
+          setText("Folder access was not granted.");
+          setFailModal(true);
+          return;
+        }
 
-      // Write to cache first
-      const tempUri = FileSystem.cacheDirectory + fileName;
-      await FileSystem.writeAsStringAsync(tempUri, csv, {
-        encoding: FileSystem.EncodingType.UTF8,
-      });
+        const fileUri = await FileSystem.StorageAccessFramework.createFileAsync(
+          permissions.directoryUri,
+          fileName,
+          "text/csv",
+        );
 
-      // Save to Downloads via MediaLibrary
-      const asset = await MediaLibrary.createAssetAsync(tempUri);
-      const album = await MediaLibrary.getAlbumAsync("Download");
+        await FileSystem.writeAsStringAsync(fileUri, csv, {
+          encoding: FileSystem.EncodingType.UTF8,
+        });
 
-      if (album == null) {
-        await MediaLibrary.createAlbumAsync("Download", asset, false);
+        setText(`Saved "${fileName}" to the selected folder.`);
       } else {
-        await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
+        const fileUri = FileSystem.documentDirectory + fileName;
+        await FileSystem.writeAsStringAsync(fileUri, csv, {
+          encoding: FileSystem.EncodingType.UTF8,
+        });
+        setText(`Saved "${fileName}" in the app documents folder.`);
       }
 
-      // Clean up temp file
-      await FileSystem.deleteAsync(tempUri, { idempotent: true });
-
-      setText(`✅ "${fileName}" saved to Downloads!`);
-      // Add success modal state if not already there
       setSuccessModal(true);
     } catch (e) {
       setText(`Failed to export CSV: ${e.message}`);
