@@ -6,7 +6,6 @@ import {
   Image,
   ScrollView,
   ActivityIndicator,
-  Platform,
 } from "react-native";
 import tw from "twrnc";
 import { Ionicons } from "@expo/vector-icons";
@@ -17,6 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import UserAuth from "../Configs/UserAuth";
 import * as FileSystem from "expo-file-system/legacy";
 import PopUpAlert from "../Components/PopUpAlert";
+import * as Sharing from "expo-sharing";
 
 function formatDate(dateStr) {
   if (!dateStr) return "—";
@@ -194,35 +194,26 @@ export default function ReportScreen() {
           /\s+/g,
           "_",
         );
-      if (Platform.OS === "android") {
-        const permissions =
-          await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
 
-        if (!permissions.granted) {
-          setText("Folder access was not granted.");
-          setFailModal(true);
-          return;
-        }
+      const tempUri = FileSystem.cacheDirectory + fileName;
+      await FileSystem.writeAsStringAsync(tempUri, csv, {
+        encoding: FileSystem.EncodingType.UTF8,
+      });
 
-        const fileUri = await FileSystem.StorageAccessFramework.createFileAsync(
-          permissions.directoryUri,
-          fileName,
-          "text/csv",
-        );
-
-        await FileSystem.writeAsStringAsync(fileUri, csv, {
-          encoding: FileSystem.EncodingType.UTF8,
-        });
-
-        setText(`Saved "${fileName}" to the selected folder.`);
-      } else {
-        const fileUri = FileSystem.documentDirectory + fileName;
-        await FileSystem.writeAsStringAsync(fileUri, csv, {
-          encoding: FileSystem.EncodingType.UTF8,
-        });
-        setText(`Saved "${fileName}" in the app documents folder.`);
+      const isAvailable = await Sharing.isAvailableAsync();
+      if (!isAvailable) {
+        throw new Error("Sharing is not available on this device.");
       }
 
+      await Sharing.shareAsync(tempUri, {
+        mimeType: "text/csv",
+        dialogTitle: "Save CSV File",
+        UTI: "public.comma-separated-values-text",
+      });
+
+      await FileSystem.deleteAsync(tempUri, { idempotent: true });
+
+      setText(`✅ "${fileName}" exported successfully!`);
       setSuccessModal(true);
     } catch (e) {
       setText(`Failed to export CSV: ${e.message}`);
@@ -231,37 +222,6 @@ export default function ReportScreen() {
       setExporting(false);
     }
   };
-
-  // Sharing
-  // const handleExportCSV = async () => {
-  //   if (bookedTickets.length === 0) {
-  //     setText("No Data : No tickets to export.");
-  //     setFailModal(true);
-  //     return;
-  //   }
-  //   setExporting(true);
-  //   try {
-  //     const csv = exportToCSV(bookedTickets);
-  //     const fileName =
-  //       `report_${selectedEventName}_${selectedTicketName}_${Date.now()}.csv`.replace(
-  //         /\s+/g,
-  //         "_",
-  //       );
-  //     const fileUri = FileSystem.documentDirectory + fileName;
-  //     await FileSystem.writeAsStringAsync(fileUri, csv, {
-  //       encoding: FileSystem.EncodingType.UTF8,
-  //     });
-  //     await Sharing.shareAsync(fileUri, {
-  //       mimeType: "text/csv",
-  //       dialogTitle: "Export Report CSV",
-  //     });
-  //   } catch (e) {
-  //     setText(`Failed to export CSV: ${e.message}`);
-  //     setFailModal(true);
-  //   } finally {
-  //     setExporting(false);
-  //   }
-  // };
 
   const checkedInCount = (bookedTickets ?? []).filter(
     (t) => t.CheckIn_Status,

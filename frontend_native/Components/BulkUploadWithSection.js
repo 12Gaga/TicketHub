@@ -4,10 +4,10 @@ import { SaleTicket } from "../Configs/AuthContext";
 import tw from "twrnc";
 import { Ionicons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
-import * as FileSystem from "expo-file-system/legacy";
 import globalApi from "../Configs/globalApi";
 import PopUpAlert from "./PopUpAlert";
-import * as MediaLibrary from "expo-media-library";
+import * as Sharing from "expo-sharing";
+import * as FileSystem from "expo-file-system/legacy";
 
 /**
  * Get limit info for a ticket type from ticketLimit array.
@@ -241,29 +241,23 @@ export default function BulkUpload() {
   };
 
   const saveToDownloads = async (fileName, content) => {
-    // Request SAF permission for Downloads folder
-    const permissions =
-      await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync(
-        "content://com.android.externalstorage.documents/tree/primary%3ADownload",
-      );
-
-    if (!permissions.granted) {
-      throw new Error("Permission denied. Cannot save to Downloads.");
-    }
-
-    // Create file in the selected directory
-    const fileUri = await FileSystem.StorageAccessFramework.createFileAsync(
-      permissions.directoryUri,
-      fileName,
-      "text/csv",
-    );
-
-    // Write content
-    await FileSystem.writeAsStringAsync(fileUri, content, {
+    const tempUri = FileSystem.cacheDirectory + fileName;
+    await FileSystem.writeAsStringAsync(tempUri, content, {
       encoding: FileSystem.EncodingType.UTF8,
     });
 
-    return fileUri;
+    const isAvailable = await Sharing.isAvailableAsync();
+    if (!isAvailable) {
+      throw new Error("Sharing is not available on this device.");
+    }
+
+    await Sharing.shareAsync(tempUri, {
+      mimeType: "text/csv",
+      dialogTitle: "Save CSV File",
+      UTI: "public.comma-separated-values-text",
+    });
+
+    await FileSystem.deleteAsync(tempUri, { idempotent: true });
   };
 
   // ── Download Template ──────────────────────────────────────
