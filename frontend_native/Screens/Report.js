@@ -303,7 +303,10 @@ export default function ReportScreen() {
             style={tw`bg-indigo-700 px-4 py-2 rounded-xl`}
             onPress={() => {
               UserAuth.logout();
-              navigation.navigate("login");
+              navigation.reset({
+                index: 0,
+                routes: [{ name: "login" }],
+              });
             }}
           >
             <Text style={tw`text-white text-xs font-bold tracking-wide`}>

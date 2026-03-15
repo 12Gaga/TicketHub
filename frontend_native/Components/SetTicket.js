@@ -152,7 +152,7 @@ export default function SetTicket() {
                   setEventTicketData({ ...eventTicketData, Limit: num })
                 }
                 keyboardType="number-pad"
-                style={tw`border mb-5 p-2.5`}
+                style={tw`border mb-5 p-2.5 text-gray-700`}
               />
             )}
             <View style={tw`flex-row items-center justify-end`}>

@@ -32,7 +32,10 @@ export default function LoginPage() {
           password: data.password,
         };
         console.log("LogInData", Login_User);
-        navigation.navigate("home");
+        navigation.reset({
+          index: 0,
+          routes: [{ name: "home" }],
+        });
         await UserAuth.setUserAuth(Login_User);
         setSuccess(true);
         setData({ identifier: "", password: "" });
@@ -55,19 +58,30 @@ export default function LoginPage() {
       >
         Log In
       </Text>
-      <TextInput
-        placeholder="Username"
-        value={data.identifier}
-        onChangeText={(text) => setData({ ...data, identifier: text })}
-        style={tw`w-[330px] border border-black rounded-[5px] pl-2 mb-[18px] text-[13px]`}
-      />
-      <TextInput
-        placeholder="Password"
-        secureTextEntry={true}
-        value={data.password}
-        onChangeText={(text) => setData({ ...data, password: text })}
-        style={tw`w-[330px] border border-black rounded-[5px] pl-2 mb-[18px] text-[13px]`}
-      />
+      <View>
+        <Text style={tw`text-sm font-semibold text-gray-900 mb-1`}>
+          Username
+        </Text>
+        <TextInput
+          placeholder="Username"
+          value={data.identifier}
+          onChangeText={(text) => setData({ ...data, identifier: text })}
+          style={tw`w-[330px] border border-black rounded-[5px] pl-2 mb-[18px] text-[13px] text-gray-700`}
+        />
+      </View>
+      <View>
+        <Text style={tw`text-sm font-semibold text-gray-900 mb-1`}>
+          Password
+        </Text>
+        <TextInput
+          placeholder="Password"
+          secureTextEntry={true}
+          value={data.password}
+          onChangeText={(text) => setData({ ...data, password: text })}
+          style={tw`w-[330px] border border-black rounded-[5px] pl-2 mb-[18px] text-[13px] text-gray-700`}
+        />
+      </View>
+
       {!success ? (
         <Text style={tw`text-red-500 text-[11px] font-bold mb-[10px]`}>
           Username or Password invalid.

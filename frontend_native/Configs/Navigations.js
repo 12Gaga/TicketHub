@@ -9,39 +9,56 @@ import globalApi from "./globalApi";
 
 const Stack = createNativeStackNavigator();
 
-export default function Navigations() {
+export default function Navigations({ navigationRef }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const appState = useRef(AppState.currentState);
-  const navigationRef = useRef(null);
 
+  // ── Shared retry helper ──────────────────────────────────
+  const checkUserWithRetry = async (storedUser, retries = 2) => {
+    for (let i = 0; i <= retries; i++) {
+      const resp = await globalApi.checkUser({
+        identifier: storedUser.username,
+        password: storedUser.password,
+      });
+
+      console.log(`Attempt ${i + 1} - status:`, resp.status, "ok:", resp.ok);
+
+      if (resp.ok && resp.data?.jwt) {
+        return { valid: true };
+      } else if (resp.status === 401) {
+        // Explicit wrong credentials — stop retrying
+        return { valid: false };
+      } else {
+        // 500 / cold start / network error — retry after delay
+        if (i < retries) {
+          console.log(`Cold start or error, retrying in 3s...`);
+          await new Promise((res) => setTimeout(res, 3000));
+        }
+      }
+    }
+    // All retries exhausted — assume cold start, keep logged in
+    return { valid: true, coldStart: true };
+  };
+
+  // ── On app open: check stored credentials ────────────────
   useEffect(() => {
     const fetchUser = async () => {
       try {
         const storedUser = await UserAuth.getUserAuth();
-        console.log("User", storedUser);
         if (storedUser) {
-          const resp = await globalApi.checkUser({
-            identifier: storedUser.username,
-            password: storedUser.password,
-          });
-
-          if (resp.ok && resp.data?.jwt) {
-            setUser(storedUser);
-            console.log("ok");
-          } else if (resp.status === 500) {
-            console.log("Strapi cold start detected, skipping verification");
+          const { valid } = await checkUserWithRetry(storedUser);
+          if (valid) {
             setUser(storedUser);
           } else {
-            UserAuth.logout();
+            await UserAuth.logout();
             setUser(null);
-            console.log("Invalid user");
           }
         } else {
           setUser(null);
         }
       } catch (error) {
-        console.error("Error fetching user:", error);
+        console.error("Error:", error);
         try {
           const storedUser = await UserAuth.getUserAuth();
           if (storedUser) setUser(storedUser);
@@ -56,13 +73,17 @@ export default function Navigations() {
     fetchUser();
   }, []);
 
-  // ✅ Navigate after navigator mounts and auth resolves
+  // ── After auth resolves, reset stack to home ─────────────
   useEffect(() => {
     if (!loading && user) {
-      navigationRef.current?.navigate("home");
+      navigationRef.current?.reset({
+        index: 0,
+        routes: [{ name: "home" }],
+      });
     }
   }, [loading, user]);
 
+  // ── When app comes back to foreground ────────────────────
   useEffect(() => {
     const subscription = AppState.addEventListener(
       "change",
@@ -70,21 +91,27 @@ export default function Navigations() {
         if (appState.current === "background" && nextState === "active") {
           try {
             const storedUser = await UserAuth.getUserAuth();
+
             if (!storedUser) {
-              navigationRef.current?.navigate("login");
+              navigationRef.current?.reset({
+                index: 0,
+                routes: [{ name: "login" }],
+              });
               return;
             }
-            const resp = await globalApi.checkUser({
-              identifier: storedUser.username,
-              password: storedUser.password,
-            });
 
-            if (!resp.ok && resp.status !== 500) {
-              UserAuth.logout();
-              navigationRef.current?.navigate("login");
+            const { valid } = await checkUserWithRetry(storedUser);
+            if (!valid) {
+              await UserAuth.logout();
+              navigationRef.current?.reset({
+                index: 0,
+                routes: [{ name: "login" }],
+              });
+              // if valid — do nothing, user stays on current screen
             }
           } catch (err) {
             console.log("AppState auth check error:", err);
+            // network error — do nothing, keep user logged in
           }
         }
         appState.current = nextState;
@@ -100,7 +127,6 @@ export default function Navigations() {
     <Stack.Navigator
       screenOptions={{ headerShown: false }}
       initialRouteName={user ? "home" : "login"}
-      ref={navigationRef}
     >
       <Stack.Screen name="login" component={LoginPage} />
       <Stack.Screen name="home" component={HomePage} />

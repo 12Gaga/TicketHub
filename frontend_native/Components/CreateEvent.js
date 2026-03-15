@@ -116,7 +116,7 @@ export default function CreateEvent() {
                 onChangeText={(text) =>
                   setEventData({ ...eventData, Name: text })
                 }
-                style={tw`border border-black rounded-[5px] pl-2 text-[13px]`}
+                style={tw`border border-black rounded-[5px] pl-2 text-[13px] text-gray-700`}
               />
             </View>
             {/* Date */}
@@ -142,7 +142,7 @@ export default function CreateEvent() {
             <TextInput
               value={eventData.Date.toDateString()}
               editable={false}
-              style={tw`border border-black rounded-[5px] pl-2 mb-3 text-[13px]`}
+              style={tw`border border-black rounded-[5px] pl-2 mb-3 text-[13px] text-gray-700`}
             />
             {/* Time */}
             <View>
@@ -193,7 +193,7 @@ export default function CreateEvent() {
                 onChangeText={(text) =>
                   setEventData({ ...eventData, Venue: text })
                 }
-                style={tw`border border-black rounded-[5px] pl-2 mb-2 text-[13px]`}
+                style={tw`border border-black rounded-[5px] pl-2 mb-2 text-[13px] text-gray-700`}
               />
             </View>
             {/* Description */}
@@ -207,7 +207,7 @@ export default function CreateEvent() {
                 onChangeText={(text) =>
                   setEventData({ ...eventData, Description: text })
                 }
-                style={tw`border border-black rounded-[5px] pl-2 mb-2 text-[13px]`}
+                style={tw`border border-black rounded-[5px] pl-2 mb-2 text-[13px] text-gray-700`}
               />
             </View>
             {/* Terms */}
@@ -221,7 +221,7 @@ export default function CreateEvent() {
                 onChangeText={(text) =>
                   setEventData({ ...eventData, Terms: text })
                 }
-                style={tw`border border-black rounded-[5px] pl-2 mb-2 text-[13px]`}
+                style={tw`border border-black rounded-[5px] pl-2 mb-2 text-[13px] text-gray-700`}
               />
             </View>
             {/* Instructions */}
@@ -235,7 +235,7 @@ export default function CreateEvent() {
                 onChangeText={(text) =>
                   setEventData({ ...eventData, Entry_Instruction: text })
                 }
-                style={tw`border border-black rounded-[5px] pl-2 mb-2 text-[13px]`}
+                style={tw`border border-black rounded-[5px] pl-2 mb-2 text-[13px] text-gray-700`}
               />
             </View>
             <View style={tw`flex-row items-center justify-end mt-2`}>
