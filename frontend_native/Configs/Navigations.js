@@ -51,7 +51,7 @@ export default function Navigations({ navigationRef }) {
           if (valid) {
             setUser(storedUser);
           } else {
-            await UserAuth.logout();
+            UserAuth.logout();
             setUser(null);
           }
         } else {
@@ -102,7 +102,7 @@ export default function Navigations({ navigationRef }) {
 
             const { valid } = await checkUserWithRetry(storedUser);
             if (!valid) {
-              await UserAuth.logout();
+              UserAuth.logout();
               navigationRef.current?.reset({
                 index: 0,
                 routes: [{ name: "login" }],
