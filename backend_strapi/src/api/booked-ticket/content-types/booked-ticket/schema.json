@@ -41,9 +41,6 @@
     "Payment": {
       "type": "string"
     },
-    "Agent": {
-      "type": "string"
-    },
     "SeatNo": {
       "type": "string"
     },
@@ -62,6 +59,11 @@
     "CheckIn_Status": {
       "type": "boolean",
       "default": false
+    },
+    "agent": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::agent.agent"
     }
   }
 }

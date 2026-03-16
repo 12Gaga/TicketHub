@@ -292,6 +292,15 @@ export default function GenerateQRScreen({ route }) {
               </View>
             </View>
 
+            <View style={tw`h-px bg-gray-100 ml-5 mt-4 mb-3`} />
+            <View style={tw`flex-row items-center justify-end`}>
+              <Text
+                style={tw`text-xs text-gray-400 tracking-widest font-semibold`}
+              >
+                By K Concert
+              </Text>
+            </View>
+
             {/* ── Tear Line ── */}
             <View style={tw`flex-row items-center`}>
               <View style={tw`w-5 h-5 rounded-full bg-[#0A0A14] -ml-2.5`} />

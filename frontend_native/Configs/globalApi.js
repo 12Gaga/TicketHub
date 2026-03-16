@@ -13,6 +13,7 @@ const isoDate = today.toISOString();
 
 const checkUser = (userData) => api.post("/auth/local", userData);
 const getTicket = () => api.get("/tickets");
+const getAgents = () => api.get("/agents");
 const getEvents = () =>
   api.get("/events?filters[On_Live][$eq]=true&populate=*");
 const getExpiredEvents = () =>
@@ -24,6 +25,7 @@ const setBookedTicket = (bookingData) =>
 const createCheckIn = (checkInData) =>
   api.post("/check-ins", { data: checkInData });
 const setEvent = (event) => api.post("/events", { data: event });
+const setAgent = (agent) => api.post("/agents", { data: agent });
 const changeEventStatus = (documentId, status = false) =>
   api.put(`/events/${documentId}?locale=fr`, {
     data: { On_Live: status },
@@ -72,4 +74,6 @@ export default {
   getCheckInAudience,
   getTicketByTicketUniqueId,
   bulkCreateTickets,
+  getAgents,
+  setAgent,
 };

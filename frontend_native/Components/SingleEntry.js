@@ -18,6 +18,7 @@ export default function SingleEntry() {
     buyState,
     handleBooking,
     loading,
+    agents,
   } = useContext(SaleTicket);
   return (
     <View>
@@ -223,15 +224,40 @@ export default function SingleEntry() {
               {/* Sales Agent / Counter */}
               <View style={tw`mb-4`}>
                 <Text style={tw`text-sm font-semibold text-gray-900 mb-1`}>
-                  Sales Agent / Counter
+                  Sales Agent / Counter <Text style={tw`text-red-500`}>*</Text>
                 </Text>
-                <TextInput
-                  placeholder="Agent 1"
-                  value={data.Agent}
-                  style={tw`border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700`}
-                  placeholderTextColor="#9CA3AF"
-                  onChangeText={(agent) => setData({ ...data, Agent: agent })}
-                />
+
+                <View
+                  style={tw`border border-gray-200 rounded-xl bg-white overflow-hidden flex-row items-center px-3`}
+                >
+                  <Ionicons
+                    name="ticket-outline"
+                    size={16}
+                    color="#6366F1"
+                    style={tw`mr-2`}
+                  />
+                  <Picker
+                    selectedValue={data.agent}
+                    onValueChange={(agent) =>
+                      setData({ ...data, agent: agent })
+                    }
+                    style={tw`flex-1 h-13 text-sm text-gray-700`}
+                  >
+                    <Picker.Item
+                      label="Select Agent"
+                      value={null}
+                      color="#9CA3AF"
+                    />
+                    {(agents ?? []).map((agent) => (
+                      <Picker.Item
+                        key={agent.documentId}
+                        label={agent.Name}
+                        value={agent.documentId}
+                        color="#111827"
+                      />
+                    ))}
+                  </Picker>
+                </View>
               </View>
 
               {/* Seat Number */}

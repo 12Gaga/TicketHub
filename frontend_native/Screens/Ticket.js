@@ -1,7 +1,15 @@
 import { useState, useEffect } from "react";
 import { Picker } from "@react-native-picker/picker";
 import globalApi from "../Configs/globalApi";
-import { View, Text, TouchableOpacity, ScrollView } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  Keyboard,
+  ScrollView,
+  Platform,
+} from "react-native";
 import tw from "twrnc";
 import { Ionicons } from "@expo/vector-icons";
 import { SaleTicket } from "../Configs/AuthContext";
@@ -10,9 +18,12 @@ import BulkUploadWithSection from "../Components/BulkUploadWithSection";
 import UserAuth from "../Configs/UserAuth";
 import { useNavigation } from "@react-navigation/native";
 import PopUpAlert from "../Components/PopUpAlert";
+import { useRef } from "react";
 
 export default function OfflineTicketGeneration() {
+  const scrollRef = useRef(null);
   const navigation = useNavigation();
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [successModal, setSuccessModal] = useState(false);
   const [failModal, setFailModal] = useState(false);
   const [failedText, setFailedText] = useState("");
@@ -26,13 +37,14 @@ export default function OfflineTicketGeneration() {
     ticket: null,
     Ticket_Status: true,
     Payment: "Cash",
-    Agent: "",
+    agent: null,
     SeatNo: "",
     Note: "",
     Ticket_Id: null,
   });
   const [loading, setLoading] = useState(false);
   const [events, setEvents] = useState([]);
+  const [agents, setAgents] = useState([]);
   const [buyState, setBuyState] = useState(1);
   const [ticketLimit, setTicketLimit] = useState([]);
   const [avariableTicketType, setAvariableTicketType] = useState([]);
@@ -49,6 +61,15 @@ export default function OfflineTicketGeneration() {
         console.log("Error:", error);
       }
     };
+    const fetchAgents = async () => {
+      try {
+        const agents = await globalApi.getAgents();
+        console.log("Agents:", agents.data.data);
+        setAgents(agents.data.data);
+      } catch (error) {
+        console.log("Error:", error);
+      }
+    };
     const fetchUser = async () => {
       try {
         const User = await UserAuth.getUserAuth();
@@ -60,6 +81,7 @@ export default function OfflineTicketGeneration() {
     };
     fetchUser();
     fetchEvents();
+    fetchAgents();
     return () => {};
   }, []);
 
@@ -136,7 +158,7 @@ export default function OfflineTicketGeneration() {
         ticket: data.ticket,
         Ticket_Status: !!data.Ticket_Status,
         Payment: data.Payment,
-        Agent: data.Agent,
+        agent: data.agent,
         SeatNo: data.SeatNo,
         Note: data.Note,
         Ticket_Id: data.Ticket_Id,
@@ -158,7 +180,7 @@ export default function OfflineTicketGeneration() {
             ticket: data.ticket,
             Ticket_Status: true,
             Payment: "Cash",
-            Agent: data.Agent,
+            agent: data.agent,
             SeatNo: "",
             Note: data.Note,
             Ticket_Id: null,
@@ -181,7 +203,7 @@ export default function OfflineTicketGeneration() {
             ticket: data.ticket,
             Ticket_Status: true,
             Payment: "Cash",
-            Agent: data.Agent,
+            agent: data.agent,
             SeatNo: "",
             Note: data.Note,
             Ticket_Id: null,
@@ -202,142 +224,167 @@ export default function OfflineTicketGeneration() {
       setLoading(false);
     }
   };
-  console.log("Sale Ticket Data : ", data);
-  console.log("Avriable Tikcets : ", avariableTicketType);
-  console.log("Booked Tickcets : ", bookedTickets);
-  console.log("Tickcets limit: ", ticketLimit);
+
+  useEffect(() => {
+    const show = Keyboard.addListener("keyboardDidShow", (e) => {
+      setKeyboardHeight(e.endCoordinates.height);
+    });
+    const hide = Keyboard.addListener("keyboardDidHide", () => {
+      setKeyboardHeight(0);
+    });
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
 
   return (
-    <ScrollView style={tw`flex-1 bg-white px-5 pt-10`}>
-      <SaleTicket.Provider
-        value={{
-          activeTab,
-          changeTicket,
-          handleBooking,
-          soldOut,
-          avariableTicketType,
-          setBuyState,
-          setData,
-          data,
-          buyState,
-          loading,
-          user,
-          bookedTickets,
-          ticketLimit,
-          events,
+    <KeyboardAvoidingView
+      behavior="padding"
+      keyboardVerticalOffset={Platform.OS === "android" ? -500 : 0}
+      style={tw`flex-1`}
+    >
+      <ScrollView
+        ref={scrollRef}
+        style={tw`flex-1 bg-white px-5 pt-10`}
+        contentContainerStyle={{
+          paddingBottom: keyboardHeight > 0 ? keyboardHeight : 5,
         }}
+        keyboardShouldPersistTaps="handled"
       >
-        {/* Header */}
-        <Text style={tw`text-3xl font-bold text-indigo-600 leading-tight`}>
-          Offline Ticket{"\n"}Generation
-        </Text>
-        <Text style={tw`text-gray-500 text-sm mt-2 mb-6`}>
-          Create tickets for offline sales manually or in bulk
-        </Text>
-
-        {/* Select Event*/}
-        <View style={tw`bg-white rounded-2xl p-4 mb-5 border border-gray-200`}>
-          <Text style={tw`text-base font-bold text-gray-900 mb-1`}>
-            Select Event <Text style={tw`text-red-500`}>*</Text>
-          </Text>
-          <Text style={tw`text-gray-400 text-xs mb-4`}>
-            Choose which event to generate tickets for
-          </Text>
-
-          <View
-            style={tw`border border-gray-200 rounded-xl bg-white overflow-hidden flex-row items-center px-3`}
-          >
-            <Ionicons
-              name="calendar-outline"
-              size={18}
-              color="#6366F1"
-              style={tw`mr-2`}
-            />
-            <Picker
-              selectedValue={data.event}
-              onValueChange={(eventValue) => changeEvent(eventValue)}
-              style={tw`flex-1 h-13 text-sm text-gray-700`}
-            >
-              <Picker.Item
-                label="Select an event"
-                value={null}
-                color="#9CA3AF"
-              />
-              {(events ?? []).map((event) => (
-                <Picker.Item
-                  key={event.documentId}
-                  label={event.Name}
-                  value={event.documentId}
-                  color="#111827"
-                />
-              ))}
-            </Picker>
-          </View>
-        </View>
-
-        {/* Single / Bulk Toggle */}
-        <View
-          style={tw`flex-row mb-6 border border-gray-200 rounded-xl overflow-hidden`}
+        <SaleTicket.Provider
+          value={{
+            activeTab,
+            changeTicket,
+            handleBooking,
+            soldOut,
+            avariableTicketType,
+            setBuyState,
+            setData,
+            data,
+            buyState,
+            loading,
+            user,
+            bookedTickets,
+            ticketLimit,
+            events,
+            agents,
+          }}
         >
-          <TouchableOpacity
-            onPress={() => setActiveTab("single")}
-            style={tw`flex-1 py-3 flex-row items-center justify-center ${
-              activeTab === "single" ? "bg-indigo-600" : "bg-white"
-            }`}
+          {/* Header */}
+          <Text style={tw`text-3xl font-bold text-indigo-600 leading-tight`}>
+            Ticket Generate
+          </Text>
+          <Text style={tw`text-gray-500 text-sm mt-2 mb-6`}>
+            Create tickets for offline sales manually or in bulk
+          </Text>
+
+          {/* Select Event*/}
+          <View
+            style={tw`bg-white rounded-2xl p-4 mb-5 border border-gray-200`}
           >
-            <Ionicons
-              name="add"
-              size={16}
-              color={activeTab === "single" ? "white" : "#6B7280"}
-            />
-            <Text
-              style={tw`ml-1 text-sm font-semibold ${
-                activeTab === "single" ? "text-white" : "text-gray-500"
+            <Text style={tw`text-base font-bold text-gray-900 mb-1`}>
+              Select Event <Text style={tw`text-red-500`}>*</Text>
+            </Text>
+            <Text style={tw`text-gray-400 text-xs mb-4`}>
+              Choose which event to generate tickets for
+            </Text>
+
+            <View
+              style={tw`border border-gray-200 rounded-xl bg-white overflow-hidden flex-row items-center px-3`}
+            >
+              <Ionicons
+                name="calendar-outline"
+                size={18}
+                color="#6366F1"
+                style={tw`mr-2`}
+              />
+              <Picker
+                selectedValue={data.event}
+                onValueChange={(eventValue) => changeEvent(eventValue)}
+                style={tw`flex-1 h-13 text-sm text-gray-700`}
+              >
+                <Picker.Item
+                  label="Select an event"
+                  value={null}
+                  color="#9CA3AF"
+                />
+                {(events ?? []).map((event) => (
+                  <Picker.Item
+                    key={event.documentId}
+                    label={event.Name}
+                    value={event.documentId}
+                    color="#111827"
+                  />
+                ))}
+              </Picker>
+            </View>
+          </View>
+
+          {/* Single / Bulk Toggle */}
+          <View
+            style={tw`flex-row mb-6 border border-gray-200 rounded-xl overflow-hidden`}
+          >
+            <TouchableOpacity
+              onPress={() => setActiveTab("single")}
+              style={tw`flex-1 py-3 flex-row items-center justify-center ${
+                activeTab === "single" ? "bg-indigo-600" : "bg-white"
               }`}
             >
-              Single Entry
-            </Text>
-          </TouchableOpacity>
+              <Ionicons
+                name="add"
+                size={16}
+                color={activeTab === "single" ? "white" : "#6B7280"}
+              />
+              <Text
+                style={tw`ml-1 text-sm font-semibold ${
+                  activeTab === "single" ? "text-white" : "text-gray-500"
+                }`}
+              >
+                Single Entry
+              </Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            onPress={() => setActiveTab("bulk")}
-            style={tw`flex-1 py-3 flex-row items-center justify-center ${
-              activeTab === "bulk" ? "bg-indigo-600" : "bg-white"
-            }`}
-          >
-            <Ionicons
-              name="cloud-upload-outline"
-              size={16}
-              color={activeTab === "bulk" ? "white" : "#6B7280"}
-            />
-            <Text
-              style={tw`ml-1 text-sm font-semibold ${
-                activeTab === "bulk" ? "text-white" : "text-gray-500"
+            <TouchableOpacity
+              onPress={() => setActiveTab("bulk")}
+              style={tw`flex-1 py-3 flex-row items-center justify-center ${
+                activeTab === "bulk" ? "bg-indigo-600" : "bg-white"
               }`}
             >
-              Bulk Upload
-            </Text>
-          </TouchableOpacity>
-        </View>
+              <Ionicons
+                name="cloud-upload-outline"
+                size={16}
+                color={activeTab === "bulk" ? "white" : "#6B7280"}
+              />
+              <Text
+                style={tw`ml-1 text-sm font-semibold ${
+                  activeTab === "bulk" ? "text-white" : "text-gray-500"
+                }`}
+              >
+                Bulk Upload
+              </Text>
+            </TouchableOpacity>
+          </View>
 
-        <SingleEntry />
-        {/* <BulkUpload /> */}
-        <BulkUploadWithSection />
-        <PopUpAlert
-          success={successModal}
-          text={"Ticket has been booked successfully."}
-          header={"Booking Complete!"}
-          ModalCall={() => setSuccessModal(false)}
-          status={true}
-        />
-        <PopUpAlert
-          success={failModal}
-          text={failedText}
-          header={"Failed!"}
-          ModalCall={() => setFailModal(false)}
-          status={false}
-        />
-      </SaleTicket.Provider>
-    </ScrollView>
+          <SingleEntry />
+          {/* <BulkUpload /> */}
+          <BulkUploadWithSection />
+          <PopUpAlert
+            success={successModal}
+            text={"Ticket has been booked successfully."}
+            header={"Booking Complete!"}
+            ModalCall={() => setSuccessModal(false)}
+            status={true}
+          />
+          <PopUpAlert
+            success={failModal}
+            text={failedText}
+            header={"Failed!"}
+            ModalCall={() => setFailModal(false)}
+            status={false}
+          />
+        </SaleTicket.Provider>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }

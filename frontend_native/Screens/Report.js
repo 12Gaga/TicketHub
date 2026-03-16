@@ -17,6 +17,7 @@ import UserAuth from "../Configs/UserAuth";
 import * as FileSystem from "expo-file-system/legacy";
 import PopUpAlert from "../Components/PopUpAlert";
 import * as Sharing from "expo-sharing";
+import CreateAgent from "../Components/CreateAgent";
 
 function formatDate(dateStr) {
   if (!dateStr) return "—";
@@ -131,6 +132,7 @@ export default function ReportScreen() {
   const [failModal, setFailModal] = useState(false);
   const [successModal, setSuccessModal] = useState(false);
   const [text, setText] = useState("");
+  const [createAgent, setCreateAgent] = useState(false);
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -273,7 +275,15 @@ export default function ReportScreen() {
             </Text>
           </TouchableOpacity>
         </View>
-
+        <TouchableOpacity
+          style={tw`bg-indigo-600 rounded-xl py-4 flex-row items-center justify-center mb-4`}
+          onPress={() => setCreateAgent(true)}
+        >
+          <Ionicons name="add" size={18} color="white" />
+          <Text style={tw`text-white font-bold text-sm ml-2`}>
+            Create Agent
+          </Text>
+        </TouchableOpacity>
         {/* ── Page Title ── */}
         <Text style={tw`text-2xl font-bold text-gray-900 mb-1`}>
           Ticket Report
@@ -594,6 +604,11 @@ export default function ReportScreen() {
           header={"Success"}
           ModalCall={() => setSuccessModal(false)}
           status={true}
+        />
+
+        <CreateAgent
+          createAgent={createAgent}
+          setCreateAgent={setCreateAgent}
         />
       </ScrollView>
     </SafeAreaView>
