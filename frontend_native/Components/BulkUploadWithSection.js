@@ -1,4 +1,10 @@
-import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ActivityIndicator,
+  Platform,
+} from "react-native";
 import { useContext, useState } from "react";
 import { SaleTicket } from "../Configs/AuthContext";
 import tw from "twrnc";
@@ -8,6 +14,53 @@ import globalApi from "../Configs/globalApi";
 import PopUpAlert from "./PopUpAlert";
 import * as Sharing from "expo-sharing";
 import * as FileSystem from "expo-file-system/legacy";
+
+async function saveCsvFile(fileName, content) {
+  if (Platform.OS === "android") {
+    const permissions =
+      await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync(
+        FileSystem.StorageAccessFramework.getUriForDirectoryInRoot("Download"),
+      );
+
+    if (!permissions.granted) {
+      throw new Error("Storage permission was not granted.");
+    }
+
+    const fileUri = await FileSystem.StorageAccessFramework.createFileAsync(
+      permissions.directoryUri,
+      fileName,
+      "text/csv",
+    );
+
+    await FileSystem.StorageAccessFramework.writeAsStringAsync(fileUri, content, {
+      encoding: FileSystem.EncodingType.UTF8,
+    });
+
+    return;
+  }
+
+  if (!FileSystem.cacheDirectory) {
+    throw new Error("Cache directory is not available on this device.");
+  }
+
+  const tempUri = FileSystem.cacheDirectory + fileName;
+  await FileSystem.writeAsStringAsync(tempUri, content, {
+    encoding: FileSystem.EncodingType.UTF8,
+  });
+
+  const isAvailable = await Sharing.isAvailableAsync();
+  if (!isAvailable) {
+    throw new Error("Sharing is not available on this device.");
+  }
+
+  await Sharing.shareAsync(tempUri, {
+    mimeType: "text/csv",
+    dialogTitle: "Save CSV File",
+    UTI: "public.comma-separated-values-text",
+  });
+
+  await FileSystem.deleteAsync(tempUri, { idempotent: true });
+}
 
 /**
  * Get limit info for a ticket type from ticketLimit array.
@@ -241,23 +294,7 @@ export default function BulkUpload() {
   };
 
   const saveToDownloads = async (fileName, content) => {
-    const tempUri = FileSystem.cacheDirectory + fileName;
-    await FileSystem.writeAsStringAsync(tempUri, content, {
-      encoding: FileSystem.EncodingType.UTF8,
-    });
-
-    const isAvailable = await Sharing.isAvailableAsync();
-    if (!isAvailable) {
-      throw new Error("Sharing is not available on this device.");
-    }
-
-    await Sharing.shareAsync(tempUri, {
-      mimeType: "text/csv",
-      dialogTitle: "Save CSV File",
-      UTI: "public.comma-separated-values-text",
-    });
-
-    await FileSystem.deleteAsync(tempUri, { idempotent: true });
+    await saveCsvFile(fileName, content);
   };
 
   // ── Download Template ──────────────────────────────────────
@@ -275,7 +312,11 @@ export default function BulkUpload() {
 
       await saveToDownloads(fileName, csvContent);
 
-      setText(`✅ "${fileName}" saved to Downloads!`);
+      setText(
+        Platform.OS === "android"
+          ? `"${fileName}" saved successfully.`
+          : `"${fileName}" is ready to share.`,
+      );
       setSuccessModal(true);
     } catch (e) {
       console.error("Template download error:", e);

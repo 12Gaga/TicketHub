@@ -5,6 +5,7 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  Platform,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { useContext, useState } from "react";
@@ -49,6 +50,53 @@ function parseCSV(text) {
 const TEMPLATE_CSV =
   "Name,Email,Phone,Payment,Agent,SeatNo,Note,Ticket_Id\nJohn Doe,john@example.com,+1 555-0100,Cash,AgentName,A1,VIP Guest,TK001";
 
+async function saveCsvFile(fileName, content) {
+  if (Platform.OS === "android") {
+    const permissions =
+      await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync(
+        FileSystem.StorageAccessFramework.getUriForDirectoryInRoot("Download"),
+      );
+
+    if (!permissions.granted) {
+      throw new Error("Storage permission was not granted.");
+    }
+
+    const fileUri = await FileSystem.StorageAccessFramework.createFileAsync(
+      permissions.directoryUri,
+      fileName,
+      "text/csv",
+    );
+
+    await FileSystem.StorageAccessFramework.writeAsStringAsync(fileUri, content, {
+      encoding: FileSystem.EncodingType.UTF8,
+    });
+
+    return;
+  }
+
+  if (!FileSystem.cacheDirectory) {
+    throw new Error("Cache directory is not available on this device.");
+  }
+
+  const tempUri = FileSystem.cacheDirectory + fileName;
+  await FileSystem.writeAsStringAsync(tempUri, content, {
+    encoding: FileSystem.EncodingType.UTF8,
+  });
+
+  const isAvailable = await Sharing.isAvailableAsync();
+  if (!isAvailable) {
+    throw new Error("Sharing is not available on this device.");
+  }
+
+  await Sharing.shareAsync(tempUri, {
+    mimeType: "text/csv",
+    dialogTitle: "Save CSV File",
+    UTI: "public.comma-separated-values-text",
+  });
+
+  await FileSystem.deleteAsync(tempUri, { idempotent: true });
+}
+
 export default function BulkUpload() {
   const {
     activeTab,
@@ -70,11 +118,15 @@ export default function BulkUpload() {
 
   const handleDownloadTemplate = async () => {
     try {
-      const fileUri = FileSystem.documentDirectory + "ticket_template.csv";
-      await FileSystem.writeAsStringAsync(fileUri, TEMPLATE_CSV); // use FileSystem, not FileSystemWrite
-      await Sharing.shareAsync(fileUri);
+      await saveCsvFile("ticket_template.csv", TEMPLATE_CSV);
+      setText(
+        Platform.OS === "android"
+          ? '"ticket_template.csv" saved successfully.'
+          : '"ticket_template.csv" is ready to share.',
+      );
+      setSuccessModal(true);
     } catch (e) {
-      setText("Could not download template");
+      setText(`Could not download template: ${e.message}`);
       setFailModal(true);
     }
   };

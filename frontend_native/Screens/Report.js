@@ -6,6 +6,7 @@ import {
   Image,
   ScrollView,
   ActivityIndicator,
+  Platform,
 } from "react-native";
 import tw from "twrnc";
 import { Ionicons } from "@expo/vector-icons";
@@ -18,6 +19,13 @@ import * as FileSystem from "expo-file-system/legacy";
 import PopUpAlert from "../Components/PopUpAlert";
 import * as Sharing from "expo-sharing";
 import CreateAgent from "../Components/CreateAgent";
+
+function sanitizeFileName(value) {
+  return (value ?? "")
+    .replace(/[^a-zA-Z0-9_\- ]/g, "")
+    .trim()
+    .replace(/\s+/g, "_");
+}
 
 function formatDate(dateStr) {
   if (!dateStr) return "—";
@@ -191,31 +199,64 @@ export default function ReportScreen() {
     setExporting(true);
     try {
       const csv = exportToCSV(bookedTickets);
-      const fileName =
-        `report_${selectedEventName}_${selectedTicketName}_${Date.now()}.csv`.replace(
-          /\s+/g,
-          "_",
+      const eventPart = sanitizeFileName(selectedEventName) || "event";
+      const ticketPart = sanitizeFileName(selectedTicketName) || "ticket";
+      const fileBaseName = `report_${eventPart}_${ticketPart}_${Date.now()}`;
+      const fileName = `${fileBaseName}.csv`;
+
+      if (Platform.OS === "android") {
+        const permissions =
+          await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync(
+            FileSystem.StorageAccessFramework.getUriForDirectoryInRoot(
+              "Download",
+            ),
+          );
+
+        if (!permissions.granted) {
+          throw new Error("Storage permission was not granted.");
+        }
+
+        const fileUri =
+          await FileSystem.StorageAccessFramework.createFileAsync(
+            permissions.directoryUri,
+            fileName,
+            "text/csv",
+          );
+
+        await FileSystem.StorageAccessFramework.writeAsStringAsync(
+          fileUri,
+          csv,
+          {
+            encoding: FileSystem.EncodingType.UTF8,
+          },
         );
 
-      const tempUri = FileSystem.cacheDirectory + fileName;
-      await FileSystem.writeAsStringAsync(tempUri, csv, {
-        encoding: FileSystem.EncodingType.UTF8,
-      });
+        setText(`"${fileName}" saved successfully.`);
+      } else {
+        if (!FileSystem.cacheDirectory) {
+          throw new Error("Cache directory is not available on this device.");
+        }
 
-      const isAvailable = await Sharing.isAvailableAsync();
-      if (!isAvailable) {
-        throw new Error("Sharing is not available on this device.");
+        const tempUri = FileSystem.cacheDirectory + fileName;
+        await FileSystem.writeAsStringAsync(tempUri, csv, {
+          encoding: FileSystem.EncodingType.UTF8,
+        });
+
+        const isAvailable = await Sharing.isAvailableAsync();
+        if (!isAvailable) {
+          throw new Error("Sharing is not available on this device.");
+        }
+
+        await Sharing.shareAsync(tempUri, {
+          mimeType: "text/csv",
+          dialogTitle: "Save CSV File",
+          UTI: "public.comma-separated-values-text",
+        });
+
+        await FileSystem.deleteAsync(tempUri, { idempotent: true });
+        setText(`"${fileName}" is ready to share.`);
       }
 
-      await Sharing.shareAsync(tempUri, {
-        mimeType: "text/csv",
-        dialogTitle: "Save CSV File",
-        UTI: "public.comma-separated-values-text",
-      });
-
-      await FileSystem.deleteAsync(tempUri, { idempotent: true });
-
-      setText(`✅ "${fileName}" exported successfully!`);
       setSuccessModal(true);
     } catch (e) {
       setText(`Failed to export CSV: ${e.message}`);
