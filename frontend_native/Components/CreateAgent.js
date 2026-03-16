@@ -38,14 +38,19 @@ export default function CreateAgent({ createAgent, setCreateAgent }) {
     try {
       const payload = {
         Name: data.Name.trim(),
-        Phone: data.Phone.trim() || "",
+        Phone: data.Phone?.trim() || null,
         Email: data.Email?.trim() || null,
-        Address: data.Address.trim() || "",
+        Address: data.Address?.trim() || null,
       };
       const resp = await globalApi.setAgent(payload);
+      console.log("resp.ok:", resp.ok); // ← check response
+      console.log("resp.status:", resp.status); // ← check status
+      console.log("resp.data:", resp.data); // ← check data
+      console.log("resp.problem:", resp.problem);
       if (resp.ok) {
         setSuccessModal(true);
-        resetForm();
+        setData({ Name: "", Phone: "", Email: null, Address: "" }); // ✅
+        setSuccessModal(true);
       } else {
         setFailText("Failed to create agent. Please try again.");
         setFailModal(true);

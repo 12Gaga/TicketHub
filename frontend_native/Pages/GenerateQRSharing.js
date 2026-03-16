@@ -293,9 +293,9 @@ export default function GenerateQRScreen({ route }) {
             </View>
 
             <View style={tw`h-px bg-gray-100 ml-5 mt-4 mb-3`} />
-            <View style={tw`flex-row items-center justify-end`}>
+            <View style={tw`flex-row items-center justify-center`}>
               <Text
-                style={tw`text-xs text-gray-400 tracking-widest font-semibold`}
+                style={tw`text-xs text-gray-500 tracking-widest font-semibold`}
               >
                 By K Concert
               </Text>

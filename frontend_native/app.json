@@ -21,7 +21,7 @@
         "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#8B0000"
       },
-      "edgeToEdgeEnabled": true,
+      "edgeToEdgeEnabled": false,
       "package": "com.myat_noe.tickethub"
     },
     "web": {
