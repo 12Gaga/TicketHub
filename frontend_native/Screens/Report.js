@@ -216,12 +216,11 @@ export default function ReportScreen() {
           throw new Error("Storage permission was not granted.");
         }
 
-        const fileUri =
-          await FileSystem.StorageAccessFramework.createFileAsync(
-            permissions.directoryUri,
-            fileName,
-            "text/csv",
-          );
+        const fileUri = await FileSystem.StorageAccessFramework.createFileAsync(
+          permissions.directoryUri,
+          fileName,
+          "text/csv",
+        );
 
         await FileSystem.StorageAccessFramework.writeAsStringAsync(
           fileUri,
@@ -303,8 +302,8 @@ export default function ReportScreen() {
           </Text>
           <TouchableOpacity
             style={tw`bg-indigo-700 px-4 py-2 rounded-xl`}
-            onPress={() => {
-              UserAuth.logout();
+            onPress={async () => {
+              await UserAuth.logout();
               navigation.reset({
                 index: 0,
                 routes: [{ name: "login" }],

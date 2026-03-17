@@ -191,10 +191,11 @@ export default function OfflineTicketGeneration() {
         } else {
           console.log("online");
           console.log("data", resp.data.data);
-          const event_Name = events.find((e) => e.documentId == data.event);
+          const event = events.find((e) => e.documentId == data.event);
           const ticket_Type = avariableTicketType.find(
             (t) => t.documentId == data.ticket,
           );
+          const customerName = data.Name;
           setData({
             event: data.event,
             Name: "",
@@ -213,7 +214,10 @@ export default function OfflineTicketGeneration() {
           navigation.navigate("generateQR", {
             documentId: resp.data.data.documentId,
             ticketType: ticket_Type.Name,
-            eventName: event_Name.Name,
+            eventName: event.Name,
+            eventDate: event.Date,
+            eventVenue: event.Venue,
+            customerName: customerName,
           });
         }
       }

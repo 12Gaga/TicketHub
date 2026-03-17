@@ -24,11 +24,31 @@ export default function GenerateQRScreen({ route }) {
   const [failModal, setFailModal] = useState(false);
   const [successModal, setSuccessModal] = useState(false);
   const [text, setText] = useState("");
-  const { documentId, ticketType, eventName } = route?.params ?? {
+  const {
+    documentId,
+    ticketType,
+    eventName,
+    eventDate,
+    eventVenue,
+    customerName,
+  } = route?.params ?? {
     documentId: "u52jpr6kwzm8e9fsme397tzm",
     ticketType: "VIP",
     eventName: "Rock Night 2026",
+    eventDate: "",
+    eventVenue: "",
+    customerName: "Unknown",
   };
+  function formatDate(dateStr) {
+    if (!dateStr) return "TBA";
+    const d = new Date(dateStr);
+    return d.toLocaleDateString("en-US", {
+      weekday: "short",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  }
 
   const qrValue = documentId;
 
@@ -230,7 +250,25 @@ export default function GenerateQRScreen({ route }) {
 
             {/* ── Info Lines ── */}
             <View style={tw`px-6 pt-6 pb-5`}>
-              {/* Line 1 — Ticket Type */}
+              {/* Line 1 — Customer Name */}
+              <View style={tw`flex-row items-start mb-4`}>
+                <View
+                  style={tw`w-2 h-2 rounded-full bg-indigo-500 mt-1.5 mr-3`}
+                />
+                <View>
+                  <Text
+                    style={tw`text-gray-500 font-bold tracking-widest mb-0.5`}
+                    allowFontScaling={false}
+                  >
+                    {"CUSTOMER NAME"}
+                  </Text>
+                  <Text style={tw`text-base font-bold text-violet-400`}>
+                    {customerName}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Line 2 — Ticket Type */}
               <View style={tw`flex-row items-start mb-4`}>
                 <View
                   style={tw`w-2 h-2 rounded-full bg-violet-500 mt-1.5 mr-3`}
@@ -250,7 +288,7 @@ export default function GenerateQRScreen({ route }) {
 
               <View style={tw`h-px bg-white bg-opacity-5 ml-5 mb-4`} />
 
-              {/* Line 2 — Event Name */}
+              {/* Line 3 — Event Name */}
               <View style={tw`flex-row items-start mb-4`}>
                 <View
                   style={tw`w-2 h-2 rounded-full bg-indigo-500 mt-1.5 mr-3`}
@@ -268,9 +306,45 @@ export default function GenerateQRScreen({ route }) {
                 </View>
               </View>
 
+              {/* Line 4 — Event Date */}
+              <View style={tw`flex-row items-start mb-4`}>
+                <View
+                  style={tw`w-2 h-2 rounded-full bg-indigo-500 mt-1.5 mr-3`}
+                />
+                <View>
+                  <Text
+                    style={tw`text-gray-500 font-bold tracking-widest mb-0.5`}
+                    allowFontScaling={false}
+                  >
+                    {"EVENT DATE"}
+                  </Text>
+                  <Text style={tw`text-base font-bold text-violet-400`}>
+                    {formatDate(eventDate)}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Line 5 — Event Venue */}
+              <View style={tw`flex-row items-start mb-4`}>
+                <View
+                  style={tw`w-2 h-2 rounded-full bg-indigo-500 mt-1.5 mr-3`}
+                />
+                <View>
+                  <Text
+                    style={tw`text-gray-500 font-bold tracking-widest mb-0.5`}
+                    allowFontScaling={false}
+                  >
+                    {"EVENT VENUE"}
+                  </Text>
+                  <Text style={tw`text-base font-bold text-violet-400`}>
+                    {eventVenue}
+                  </Text>
+                </View>
+              </View>
+
               <View style={tw`h-px bg-white bg-opacity-5 ml-5 mb-4`} />
 
-              {/* Line 3 — Document ID */}
+              {/* Line 5 — Document ID */}
               <View style={tw`flex-row items-start`}>
                 <View
                   style={tw`w-2 h-2 rounded-full bg-blue-500 mt-1.5 mr-3`}
@@ -280,7 +354,7 @@ export default function GenerateQRScreen({ route }) {
                     style={tw`text-gray-500 font-bold tracking-widest mb-0.5`}
                     allowFontScaling={false}
                   >
-                    {"BOOKING REF"}
+                    {"BOOKING REFERENCE"}
                   </Text>
                   <Text
                     style={tw`text-sm font-semibold text-violet-400`}

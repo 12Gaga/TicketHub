@@ -1,10 +1,32 @@
 import { create } from "apisauce";
+import UserAuth from "./UserAuth";
 
 const api = create({
   baseURL: process.env.EXPO_PUBLIC_API_URL,
   headers: {
-    Authorization: `Bearer ${process.env.EXPO_PUBLIC_API_TOKEN}`,
+    "Content-Type": "application/json",
   },
+});
+
+let _navigator;
+
+export const setNavigator = (nav) => {
+  _navigator = nav;
+};
+
+api.addAsyncResponseTransform(async (response) => {
+  if (response.status === 401) {
+    await UserAuth.logout();
+    _navigator?.navigate("login");
+  }
+});
+
+// ✅ Dynamically attach JWT token from logged in user
+api.addAsyncRequestTransform(async (request) => {
+  const user = await UserAuth.getUserAuth();
+  if (user?.token) {
+    request.headers["Authorization"] = `Bearer ${user.token}`;
+  }
 });
 
 const today = new Date();
@@ -52,7 +74,6 @@ const changeTicketStatus = (documentId, scannerId, status = true) =>
   api.put(`/booked-tickets/${documentId}?locale=fr`, {
     data: { CheckIn_Status: status, Scanner_Id: scannerId },
   });
-
 const bulkCreateTickets = (tickets) =>
   api.post("/booked-tickets/bulk", { tickets });
 

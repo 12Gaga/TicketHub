@@ -30,15 +30,16 @@ export default function LoginPage() {
           email: resp.data.user.email,
           username: resp.data.user.username,
           password: data.password,
+          token: resp.data.jwt,
         };
         console.log("LogInData", Login_User);
+        await UserAuth.setUserAuth(Login_User);
+        setSuccess(true);
+        setData({ identifier: "", password: "" });
         navigation.reset({
           index: 0,
           routes: [{ name: "home" }],
         });
-        await UserAuth.setUserAuth(Login_User);
-        setSuccess(true);
-        setData({ identifier: "", password: "" });
       } else {
         console.log("Failed ❌", resp.data);
         setSuccess(false);

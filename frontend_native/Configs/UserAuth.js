@@ -1,16 +1,18 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from "expo-secure-store";
+
+const USER_KEY = "userData";
 
 const setUserAuth = async (value) => {
-  await AsyncStorage.setItem("userData", JSON.stringify(value));
+  await SecureStore.setItemAsync(USER_KEY, JSON.stringify(value));
 };
 
 const getUserAuth = async () => {
-  const value = await AsyncStorage.getItem("userData");
-  return JSON.parse(value);
+  const value = await SecureStore.getItemAsync(USER_KEY);
+  return value ? JSON.parse(value) : null;
 };
 
-const logout = () => {
-  AsyncStorage.clear();
+const logout = async () => {
+  await SecureStore.deleteItemAsync(USER_KEY);
 };
 
 export default {
