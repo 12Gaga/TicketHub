@@ -17,7 +17,7 @@ import { useNavigation } from "@react-navigation/native";
 import PopUpAlert from "../Components/PopUpAlert";
 import * as MediaLibrary from "expo-media-library";
 
-const BARCODE_WIDTH = Math.floor(Dimensions.get("window").width - 130);
+const BARCODE_WIDTH = Math.floor(Dimensions.get("window").width - 80);
 
 export default function GenerateQRScreen({ route }) {
   const navigation = useNavigation();
@@ -30,6 +30,7 @@ export default function GenerateQRScreen({ route }) {
     ticketType,
     eventName,
     eventDate,
+    eventTime,
     eventVenue,
     customerName,
   } = route?.params ?? {
@@ -40,6 +41,15 @@ export default function GenerateQRScreen({ route }) {
     eventVenue: "",
     customerName: "Unknown",
   };
+
+  function formatTime(timeStr) {
+    if (!timeStr) return "TBA";
+    const [h, m] = timeStr.split(":");
+    const hour = parseInt(h);
+    const ampm = hour >= 12 ? "PM" : "AM";
+    const h12 = hour % 12 || 12;
+    return `${h12}:${m} ${ampm}`;
+  }
 
   function formatDate(dateStr) {
     if (!dateStr) return "TBA";
@@ -199,9 +209,6 @@ export default function GenerateQRScreen({ route }) {
             <View style={tw`px-6 pt-6 pb-5`}>
               {/* Customer Name */}
               <View style={tw`flex-row items-start mb-4`}>
-                <View
-                  style={tw`w-2 h-2 rounded-full bg-indigo-500 mt-1.5 mr-3`}
-                />
                 <View>
                   <Text
                     style={tw`text-xs text-gray-500 font-bold tracking-widest mb-0.5`}
@@ -216,9 +223,6 @@ export default function GenerateQRScreen({ route }) {
 
               {/* Ticket Type */}
               <View style={tw`flex-row items-start mb-4`}>
-                <View
-                  style={tw`w-2 h-2 rounded-full bg-violet-500 mt-1.5 mr-3`}
-                />
                 <View>
                   <Text
                     style={tw`text-xs text-gray-500 font-bold tracking-widest mb-0.5`}
@@ -235,14 +239,11 @@ export default function GenerateQRScreen({ route }) {
 
               {/* Event Name */}
               <View style={tw`flex-row items-start mb-4`}>
-                <View
-                  style={tw`w-2 h-2 rounded-full bg-indigo-500 mt-1.5 mr-3`}
-                />
                 <View>
                   <Text
                     style={tw`text-xs text-gray-500 font-bold tracking-widest mb-0.5`}
                   >
-                    {"EVENT"}
+                    {"EVENT NAME"}
                   </Text>
                   <Text style={tw`text-base font-bold text-violet-400`}>
                     {eventName}
@@ -252,9 +253,6 @@ export default function GenerateQRScreen({ route }) {
 
               {/* Event Date */}
               <View style={tw`flex-row items-start mb-4`}>
-                <View
-                  style={tw`w-2 h-2 rounded-full bg-indigo-500 mt-1.5 mr-3`}
-                />
                 <View>
                   <Text
                     style={tw`text-xs text-gray-500 font-bold tracking-widest mb-0.5`}
@@ -267,11 +265,22 @@ export default function GenerateQRScreen({ route }) {
                 </View>
               </View>
 
+              {/* Event Time */}
+              <View style={tw`flex-row items-start mb-4`}>
+                <View>
+                  <Text
+                    style={tw`text-xs text-gray-500 font-bold tracking-widest mb-0.5`}
+                  >
+                    {"EVENT TIME"}
+                  </Text>
+                  <Text style={tw`text-base font-bold text-violet-400`}>
+                    {formatTime(eventTime)}
+                  </Text>
+                </View>
+              </View>
+
               {/* Event Venue */}
               <View style={tw`flex-row items-start mb-4`}>
-                <View
-                  style={tw`w-2 h-2 rounded-full bg-indigo-500 mt-1.5 mr-3`}
-                />
                 <View>
                   <Text
                     style={tw`text-xs text-gray-500 font-bold tracking-widest mb-0.5`}
@@ -288,9 +297,6 @@ export default function GenerateQRScreen({ route }) {
 
               {/* Booking Reference */}
               <View style={tw`flex-row items-start`}>
-                <View
-                  style={tw`w-2 h-2 rounded-full bg-blue-500 mt-1.5 mr-3`}
-                />
                 <View style={tw`flex-1`}>
                   <Text
                     style={tw`text-xs text-gray-500 font-bold tracking-widest mb-0.5`}
@@ -341,7 +347,7 @@ export default function GenerateQRScreen({ route }) {
                   source={{ uri: barcodeUri }}
                   style={{
                     width: BARCODE_WIDTH,
-                    height: 80,
+                    height: 110,
                   }}
                   resizeMode="contain"
                 />

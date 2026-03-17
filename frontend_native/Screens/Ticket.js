@@ -217,6 +217,7 @@ export default function OfflineTicketGeneration() {
             eventName: event.Name,
             eventDate: event.Date,
             eventVenue: event.Venue,
+            eventTime: event.Time,
             customerName: customerName,
           });
         }
