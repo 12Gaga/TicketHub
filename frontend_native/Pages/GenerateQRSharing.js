@@ -3,27 +3,28 @@ import {
   View,
   Text,
   TouchableOpacity,
-  Alert,
   ScrollView,
   Animated,
   StatusBar,
+  Dimensions,
+  Image,
 } from "react-native";
-import QRCode from "react-native-qrcode-svg";
-import * as Sharing from "expo-sharing";
-import * as FileSystem from "expo-file-system/legacy";
 import { captureRef } from "react-native-view-shot";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
-import tw from "twrnc"; // adjust path if needed e.g. "../lib/tailwind"
+import tw from "twrnc";
 import { useNavigation } from "@react-navigation/native";
 import PopUpAlert from "../Components/PopUpAlert";
 import * as MediaLibrary from "expo-media-library";
+
+const BARCODE_WIDTH = Math.floor(Dimensions.get("window").width - 130);
 
 export default function GenerateQRScreen({ route }) {
   const navigation = useNavigation();
   const [failModal, setFailModal] = useState(false);
   const [successModal, setSuccessModal] = useState(false);
   const [text, setText] = useState("");
+
   const {
     documentId,
     ticketType,
@@ -39,6 +40,7 @@ export default function GenerateQRScreen({ route }) {
     eventVenue: "",
     customerName: "Unknown",
   };
+
   function formatDate(dateStr) {
     if (!dateStr) return "TBA";
     const d = new Date(dateStr);
@@ -50,7 +52,8 @@ export default function GenerateQRScreen({ route }) {
     });
   }
 
-  const qrValue = documentId;
+  const barcodeValue = documentId ?? "INVALID";
+  const barcodeUri = `https://barcode.tec-it.com/barcode.ashx?data=${encodeURIComponent(barcodeValue)}&code=Code128&dpi=96`;
 
   const qrRef = useRef(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -91,7 +94,6 @@ export default function GenerateQRScreen({ route }) {
     try {
       const uri = await captureRef(qrRef, { format: "png", quality: 1 });
 
-      // Request media library permission
       const { status } = await MediaLibrary.requestPermissionsAsync();
       if (status !== "granted") {
         setText("Permission denied. Cannot save to gallery.");
@@ -99,7 +101,6 @@ export default function GenerateQRScreen({ route }) {
         return;
       }
 
-      // Save directly to gallery
       const asset = await MediaLibrary.createAssetAsync(uri);
       const album = await MediaLibrary.getAlbumAsync("Download");
 
@@ -109,47 +110,15 @@ export default function GenerateQRScreen({ route }) {
         await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
       }
 
-      setText("✅ QR Code saved to Downloads!");
-      setSuccessModal(true); // you'll need to add successModal state too
+      setText("✅ Ticket saved to Downloads!");
+      setSuccessModal(true);
     } catch (err) {
       console.error("Save error:", err);
-      setText("Failed to save QR code.");
+      setText("Failed to save ticket.");
       setFailModal(true);
     }
   };
 
-  // Sharing
-  // const handleSave = async () => {
-  //   try {
-  //     const uri = await captureRef(qrRef, { format: "png", quality: 1 });
-
-  //     const fileName = `TicketHub_QR_${documentId}.png`;
-  //     const destPath = FileSystem.documentDirectory + fileName;
-  //     await FileSystem.copyAsync({ from: uri, to: destPath });
-
-  //     const isAvailable = await Sharing.isAvailableAsync();
-  //     if (!isAvailable) {
-  //       setText("Not Availabl : Sharing is not supported on this device.");
-  //       setFailModal(true);
-  //       return;
-  //     }
-
-  //     await Sharing.shareAsync(destPath, {
-  //       mimeType: "image/png",
-  //       dialogTitle: "Save your QR code",
-  //       UTI: "public.png",
-  //     });
-  //   } catch (err) {
-  //     console.error("Save error:", err);
-  //     setText("Failed to share QR code.");
-  //     setFailModal(true);
-  //   }
-  // };
-
-  const truncate = (str, n) =>
-    str && str.length > n ? str.slice(0, n) + "…" : str;
-
-  //   bg-[#0A0A14]
   return (
     <View style={tw`flex-1 bg-white`}>
       <StatusBar barStyle="light-content" backgroundColor="#0A0A14" />
@@ -166,27 +135,6 @@ export default function GenerateQRScreen({ route }) {
         contentContainerStyle={tw`pt-14 pb-12 px-5 items-center`}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Header ── */}
-        {/* <Animated.View
-          style={[
-            tw`flex-row items-center justify-between w-full mb-5`,
-            { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
-          ]}
-        >
-          <TouchableOpacity
-            style={tw`w-10 h-10 rounded-xl bg-violet-900 bg-opacity-40 items-center justify-center`}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name="chevron-back" size={22} color="#A78BFA" />
-          </TouchableOpacity>
-
-          <Text style={tw`text-lg font-bold text-violet-100 tracking-wide`}>
-            Your Ticket
-          </Text>
-
-          <View style={tw`w-10`} />
-        </Animated.View> */}
-
         {/* ── Success Badge ── */}
         <Animated.View
           style={[
@@ -236,7 +184,6 @@ export default function GenerateQRScreen({ route }) {
             },
           ]}
         >
-          {/* bg-[#13131F] */}
           <View
             style={tw`bg-white rounded-3xl overflow-hidden border border-violet-900 border-opacity-30`}
           >
@@ -250,15 +197,14 @@ export default function GenerateQRScreen({ route }) {
 
             {/* ── Info Lines ── */}
             <View style={tw`px-6 pt-6 pb-5`}>
-              {/* Line 1 — Customer Name */}
+              {/* Customer Name */}
               <View style={tw`flex-row items-start mb-4`}>
                 <View
                   style={tw`w-2 h-2 rounded-full bg-indigo-500 mt-1.5 mr-3`}
                 />
                 <View>
                   <Text
-                    style={tw`text-gray-500 font-bold tracking-widest mb-0.5`}
-                    allowFontScaling={false}
+                    style={tw`text-xs text-gray-500 font-bold tracking-widest mb-0.5`}
                   >
                     {"CUSTOMER NAME"}
                   </Text>
@@ -268,15 +214,14 @@ export default function GenerateQRScreen({ route }) {
                 </View>
               </View>
 
-              {/* Line 2 — Ticket Type */}
+              {/* Ticket Type */}
               <View style={tw`flex-row items-start mb-4`}>
                 <View
                   style={tw`w-2 h-2 rounded-full bg-violet-500 mt-1.5 mr-3`}
                 />
                 <View>
                   <Text
-                    style={tw`text-gray-500 font-bold tracking-widest mb-0.5`}
-                    allowFontScaling={false}
+                    style={tw`text-xs text-gray-500 font-bold tracking-widest mb-0.5`}
                   >
                     {"TICKET TYPE"}
                   </Text>
@@ -286,17 +231,16 @@ export default function GenerateQRScreen({ route }) {
                 </View>
               </View>
 
-              <View style={tw`h-px bg-white bg-opacity-5 ml-5 mb-4`} />
+              <View style={tw`h-px bg-gray-100 ml-5 mb-4`} />
 
-              {/* Line 3 — Event Name */}
+              {/* Event Name */}
               <View style={tw`flex-row items-start mb-4`}>
                 <View
                   style={tw`w-2 h-2 rounded-full bg-indigo-500 mt-1.5 mr-3`}
                 />
                 <View>
                   <Text
-                    style={tw`text-gray-500 font-bold tracking-widest mb-0.5`}
-                    allowFontScaling={false}
+                    style={tw`text-xs text-gray-500 font-bold tracking-widest mb-0.5`}
                   >
                     {"EVENT"}
                   </Text>
@@ -306,15 +250,14 @@ export default function GenerateQRScreen({ route }) {
                 </View>
               </View>
 
-              {/* Line 4 — Event Date */}
+              {/* Event Date */}
               <View style={tw`flex-row items-start mb-4`}>
                 <View
                   style={tw`w-2 h-2 rounded-full bg-indigo-500 mt-1.5 mr-3`}
                 />
                 <View>
                   <Text
-                    style={tw`text-gray-500 font-bold tracking-widest mb-0.5`}
-                    allowFontScaling={false}
+                    style={tw`text-xs text-gray-500 font-bold tracking-widest mb-0.5`}
                   >
                     {"EVENT DATE"}
                   </Text>
@@ -324,35 +267,33 @@ export default function GenerateQRScreen({ route }) {
                 </View>
               </View>
 
-              {/* Line 5 — Event Venue */}
+              {/* Event Venue */}
               <View style={tw`flex-row items-start mb-4`}>
                 <View
                   style={tw`w-2 h-2 rounded-full bg-indigo-500 mt-1.5 mr-3`}
                 />
                 <View>
                   <Text
-                    style={tw`text-gray-500 font-bold tracking-widest mb-0.5`}
-                    allowFontScaling={false}
+                    style={tw`text-xs text-gray-500 font-bold tracking-widest mb-0.5`}
                   >
                     {"EVENT VENUE"}
                   </Text>
                   <Text style={tw`text-base font-bold text-violet-400`}>
-                    {eventVenue}
+                    {eventVenue ?? "TBA"}
                   </Text>
                 </View>
               </View>
 
-              <View style={tw`h-px bg-white bg-opacity-5 ml-5 mb-4`} />
+              <View style={tw`h-px bg-gray-100 ml-5 mb-4`} />
 
-              {/* Line 5 — Document ID */}
+              {/* Booking Reference */}
               <View style={tw`flex-row items-start`}>
                 <View
                   style={tw`w-2 h-2 rounded-full bg-blue-500 mt-1.5 mr-3`}
                 />
                 <View style={tw`flex-1`}>
                   <Text
-                    style={tw`text-gray-500 font-bold tracking-widest mb-0.5`}
-                    allowFontScaling={false}
+                    style={tw`text-xs text-gray-500 font-bold tracking-widest mb-0.5`}
                   >
                     {"BOOKING REFERENCE"}
                   </Text>
@@ -366,10 +307,11 @@ export default function GenerateQRScreen({ route }) {
               </View>
             </View>
 
-            <View style={tw`h-px bg-gray-100 ml-5 mt-4 mb-3`} />
-            <View style={tw`flex-row items-center justify-center`}>
+            {/* By K Concert */}
+            <View style={tw`h-px bg-gray-100 mx-5 mt-2 mb-3`} />
+            <View style={tw`flex-row items-center justify-center mb-2`}>
               <Text
-                style={tw`text-xs text-gray-500 tracking-widest font-semibold`}
+                style={tw`text-xs text-gray-400 tracking-widest font-semibold`}
               >
                 By K Concert
               </Text>
@@ -384,66 +326,26 @@ export default function GenerateQRScreen({ route }) {
               <View style={tw`w-5 h-5 rounded-full bg-[#0A0A14] -mr-2.5`} />
             </View>
 
-            {/* ── QR Code ── */}
+            {/* ── Barcode ── */}
             <View style={tw`items-center py-7 px-6`}>
-              {/* White QR frame with purple corner accents */}
-              <View style={tw`relative p-4 bg-violet-50 rounded-2xl`}>
-                {/* TL corner */}
-                <View
-                  style={[
-                    tw`absolute top-1.5 left-1.5 w-5 h-5 border-violet-600`,
-                    {
-                      borderTopWidth: 3,
-                      borderLeftWidth: 3,
-                      borderTopLeftRadius: 4,
-                    },
-                  ]}
+              <View
+                style={{
+                  backgroundColor: "#ffffff",
+                  padding: 16,
+                  borderRadius: 12,
+                  width: "100%",
+                  alignItems: "center",
+                }}
+              >
+                <Image
+                  source={{ uri: barcodeUri }}
+                  style={{
+                    width: BARCODE_WIDTH,
+                    height: 80,
+                  }}
+                  resizeMode="contain"
                 />
-                {/* TR corner */}
-                <View
-                  style={[
-                    tw`absolute top-1.5 right-1.5 w-5 h-5 border-violet-600`,
-                    {
-                      borderTopWidth: 3,
-                      borderRightWidth: 3,
-                      borderTopRightRadius: 4,
-                    },
-                  ]}
-                />
-                {/* BL corner */}
-                <View
-                  style={[
-                    tw`absolute bottom-1.5 left-1.5 w-5 h-5 border-violet-600`,
-                    {
-                      borderBottomWidth: 3,
-                      borderLeftWidth: 3,
-                      borderBottomLeftRadius: 4,
-                    },
-                  ]}
-                />
-                {/* BR corner */}
-                <View
-                  style={[
-                    tw`absolute bottom-1.5 right-1.5 w-5 h-5 border-violet-600`,
-                    {
-                      borderBottomWidth: 3,
-                      borderRightWidth: 3,
-                      borderBottomRightRadius: 4,
-                    },
-                  ]}
-                />
-
-                <View style={tw`rounded-lg overflow-hidden`}>
-                  <QRCode
-                    value={qrValue}
-                    size={180}
-                    backgroundColor="transparent"
-                    color="#0A0A14"
-                    quietZone={8}
-                  />
-                </View>
               </View>
-
               <Text
                 style={tw`mt-3.5 text-xs text-gray-500 tracking-wide font-medium`}
               >
@@ -479,7 +381,7 @@ export default function GenerateQRScreen({ route }) {
                 style={tw`mr-2.5`}
               />
               <Text style={tw`text-white text-base font-bold tracking-wide`}>
-                Save QR Code
+                Save Ticket
               </Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -497,6 +399,7 @@ export default function GenerateQRScreen({ route }) {
             </Text>
           </TouchableOpacity>
         </Animated.View>
+
         <PopUpAlert
           success={failModal}
           text={text}
