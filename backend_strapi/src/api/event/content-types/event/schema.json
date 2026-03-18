@@ -47,6 +47,14 @@
     },
     "Entry_Instruction": {
       "type": "text"
+    },
+    "Image": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": [
+        "images"
+      ]
     }
   }
 }

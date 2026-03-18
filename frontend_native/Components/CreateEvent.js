@@ -1,5 +1,6 @@
 import Fontisto from "@expo/vector-icons/Fontisto";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import * as ImageManipulator from "expo-image-manipulator";
 import {
   View,
   Text,
@@ -9,6 +10,8 @@ import {
   KeyboardAvoidingView,
   ScrollView,
   Platform,
+  Image,
+  Alert,
 } from "react-native";
 import tw from "twrnc";
 import { useContext, useState } from "react";
@@ -17,6 +20,7 @@ import globalApi from "../Configs/globalApi";
 import { Ionicons } from "@expo/vector-icons";
 import { ActivityIndicator } from "react-native";
 import PopUpAlert from "./PopUpAlert";
+import * as ImagePicker from "expo-image-picker";
 
 export default function CreateEvent() {
   const [eventData, setEventData] = useState({
@@ -30,8 +34,10 @@ export default function CreateEvent() {
   });
   const [show, setShow] = useState(false);
   const [failModal, setFailModal] = useState(false);
+  const [text, setText] = useState("");
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [selectedTime, setSelectedTime] = useState(new Date());
+  const [selectedImage, setSelectedImage] = useState(null);
 
   const {
     createEvent,
@@ -54,6 +60,7 @@ export default function CreateEvent() {
       Terms: "",
       Entry_Instruction: "",
     });
+    setSelectedImage(null);
   };
 
   const onChange = (event, selectedDate) => {
@@ -63,9 +70,65 @@ export default function CreateEvent() {
     }
   };
 
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: false,
+      aspect: [1000, 1234],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      const asset = result.assets[0];
+
+      // Verify dimensions
+      // if (asset.width !== 1000 || asset.height !== 1234) {
+      //   setText(
+      //     `Invalid Image Size \n Image must be exactly 1000 x 1234 px.\nYour image is ${asset.width} x ${asset.height} px.`,
+      //   );
+      //   setFailModal(true);
+      //   return;
+      // }
+
+      setSelectedImage(asset);
+    }
+  };
+
+  const uploadImage = async (imageAsset) => {
+    const formData = new FormData();
+    formData.append("files", {
+      uri: imageAsset.uri,
+      name: imageAsset.fileName || "photo.jpg",
+      type: imageAsset.mimeType || "image/jpeg",
+    });
+
+    console.log("Uploading image...", imageAsset);
+    const response = await globalApi.uploadFile(formData);
+    console.log("Upload response:", JSON.stringify(response));
+
+    if (response.ok) {
+      return response.data[0].id;
+    }
+    console.log("Upload failed:", response.status, response.data);
+    return null;
+  };
+
   const createTheEvent = async () => {
-    const payload = {
-      data: {
+    // Check image first before loading starts
+    if (!selectedImage) {
+      setText(
+        "Image Required! \n Please select an event image before creating.",
+      );
+      setFailModal(true);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const imageId = await uploadImage(selectedImage);
+      console.log("Image ID:", imageId);
+
+      const payload = {
         Name: eventData.Name,
         Date: eventData.Date.toISOString().split("T")[0],
         Time: eventData.Time,
@@ -73,19 +136,22 @@ export default function CreateEvent() {
         Description: eventData.Description,
         Terms: eventData.Terms,
         Entry_Instruction: eventData.Entry_Instruction,
-      },
-    };
-    setLoading(true);
-    try {
-      const resp = await globalApi.setEvent(payload.data);
-      console.log("Event", resp.data.data);
+        Image: imageId,
+      };
+
+      const resp = await globalApi.setEvent(payload);
+      console.log("Create event response:", JSON.stringify(resp.data));
       if (resp.ok) {
         setFilteredEvents([...filteredEvents, resp.data.data]);
         setEvents([...events, resp.data.data]);
         resetForm();
         setCreateEvent(false);
+      } else {
+        setText("Failed to create event");
+        setFailModal(true);
       }
     } catch (err) {
+      setText("Failed to create event");
       setFailModal(true);
     } finally {
       setLoading(false);
@@ -265,6 +331,36 @@ export default function CreateEvent() {
                   />
                 </View>
 
+                {/* Event Image */}
+                <View style={tw`mt-2`}>
+                  <Text style={tw`text-sm font-semibold text-gray-900 mb-1`}>
+                    Event Image <Text style={tw`text-red-500`}>*</Text>
+                  </Text>
+                  <TouchableOpacity
+                    onPress={pickImage}
+                    style={tw`border border-black rounded-[5px] mb-2 items-center justify-center overflow-hidden`}
+                  >
+                    {selectedImage ? (
+                      <Image
+                        source={{ uri: selectedImage.uri }}
+                        style={tw`w-full h-32`}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <View style={tw`items-center py-5`}>
+                        <Ionicons
+                          name="image-outline"
+                          size={28}
+                          color="#6B7280"
+                        />
+                        <Text style={tw`text-xs text-gray-400 mt-1`}>
+                          Tap to select image
+                        </Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                </View>
+
                 {/* Buttons */}
                 <View style={tw`flex-row items-center justify-end mt-2`}>
                   <TouchableOpacity
@@ -293,13 +389,13 @@ export default function CreateEvent() {
                     )}
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={tw`bg-indigo-600 p-3 rounded-xl`}
+                    style={tw`border border-indigo-600 p-3 rounded-xl`}
                     onPress={() => {
                       resetForm();
                       setCreateEvent(false);
                     }}
                   >
-                    <Text style={tw`text-white text-center font-semibold`}>
+                    <Text style={tw`text-indigo-600 text-center font-semibold`}>
                       Close
                     </Text>
                   </TouchableOpacity>
@@ -311,8 +407,8 @@ export default function CreateEvent() {
 
         <PopUpAlert
           success={failModal}
-          text={"Failed to create event"}
-          header={"Failed!"}
+          text={text}
+          header={"Error!"}
           ModalCall={() => setFailModal(false)}
           status={false}
         />

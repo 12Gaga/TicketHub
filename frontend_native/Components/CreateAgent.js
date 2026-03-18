@@ -173,10 +173,10 @@ export default function CreateAgent({ createAgent, setCreateAgent }) {
                     )}
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={tw`bg-indigo-600 p-3 rounded-xl`}
+                    style={tw`border border-indigo-600 p-3 rounded-xl`}
                     onPress={handleClose}
                   >
-                    <Text style={tw`text-white text-center font-semibold`}>
+                    <Text style={tw`text-indigo-600 text-center font-semibold`}>
                       Close
                     </Text>
                   </TouchableOpacity>

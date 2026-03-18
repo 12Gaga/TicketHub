@@ -56,6 +56,10 @@ const getBookedTicket = (ticketID, eventID) =>
   api.get(
     `/booked-tickets?filters[ticket][documentId][$eq]=${ticketID}&filters[event][documentId][$eq]=${eventID}&populate=*`,
   );
+const getAllBookedTickets = () =>
+  api.get(
+    "/booked-tickets?populate=*&pagination[start]=0&pagination[limit]=10000",
+  );
 const getBookedTicketByEvent = (eventID) =>
   api.get(
     `/booked-tickets?filters[event][documentId][$eq]=${eventID}&populate=*`,
@@ -76,7 +80,10 @@ const changeTicketStatus = (documentId, scannerId, status = true) =>
   });
 const bulkCreateTickets = (tickets) =>
   api.post("/booked-tickets/bulk", { tickets });
-
+const uploadFile = (formData) =>
+  api.post("/upload", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
 export default {
   checkUser,
   getTicket,
@@ -97,4 +104,6 @@ export default {
   bulkCreateTickets,
   getAgents,
   setAgent,
+  uploadFile,
+  getAllBookedTickets,
 };

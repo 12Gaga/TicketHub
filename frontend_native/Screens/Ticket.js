@@ -137,6 +137,13 @@ export default function OfflineTicketGeneration() {
     }
   };
 
+  const generateCode = () => {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    return Array.from({ length: 11 }, () =>
+      chars.charAt(Math.floor(Math.random() * chars.length)),
+    ).join("");
+  };
+
   const handleBooking = async () => {
     if (
       !data.event ||
@@ -148,6 +155,10 @@ export default function OfflineTicketGeneration() {
       setFailedText("Please fill required fields");
       setFailModal(true);
       return;
+    }
+    let idOfTicket = data.Ticket_Id;
+    if (!data.Ticket_Status) {
+      idOfTicket = generateCode();
     }
     const payload = {
       data: {
@@ -161,7 +172,7 @@ export default function OfflineTicketGeneration() {
         agent: data.agent,
         SeatNo: data.SeatNo,
         Note: data.Note,
-        Ticket_Id: data.Ticket_Id,
+        Ticket_Id: idOfTicket,
         Seller_Id: user,
       },
     };
@@ -212,7 +223,7 @@ export default function OfflineTicketGeneration() {
           setSoldOut(false);
           setBuyState(1);
           navigation.navigate("generateQR", {
-            documentId: resp.data.data.documentId,
+            documentId: idOfTicket,
             ticketType: ticket_Type.Name,
             eventName: event.Name,
             eventDate: event.Date,
