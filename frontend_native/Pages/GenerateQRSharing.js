@@ -7,7 +7,6 @@ import {
   Animated,
   StatusBar,
   Dimensions,
-  Image,
 } from "react-native";
 import { captureRef } from "react-native-view-shot";
 import { LinearGradient } from "expo-linear-gradient";
@@ -16,8 +15,7 @@ import tw from "twrnc";
 import { useNavigation } from "@react-navigation/native";
 import PopUpAlert from "../Components/PopUpAlert";
 import * as MediaLibrary from "expo-media-library";
-
-const BARCODE_WIDTH = Math.floor(Dimensions.get("window").width - 80);
+import { Barcode } from "react-native-svg-barcode";
 
 export default function GenerateQRScreen({ route }) {
   const navigation = useNavigation();
@@ -61,10 +59,8 @@ export default function GenerateQRScreen({ route }) {
       day: "numeric",
     });
   }
-
-  const barcodeValue = documentId ?? "INVALID";
-  const barcodeUri = `https://barcode.tec-it.com/barcode.ashx?data=${encodeURIComponent(barcodeValue)}&code=Code128&dpi=96`;
-
+  console.log("documentId", documentId);
+  const barcodeValue = documentId ? String(documentId) : "INVALID";
   const qrRef = useRef(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(40)).current;
@@ -334,22 +330,14 @@ export default function GenerateQRScreen({ route }) {
 
             {/* ── Barcode ── */}
             <View style={tw`items-center py-7 px-6`}>
-              <View
-                style={{
-                  backgroundColor: "#ffffff",
-                  padding: 16,
-                  borderRadius: 12,
-                  width: "100%",
-                  alignItems: "center",
-                }}
-              >
-                <Image
-                  source={{ uri: barcodeUri }}
-                  style={{
-                    width: BARCODE_WIDTH,
-                    height: 110,
-                  }}
-                  resizeMode="contain"
+              <View style={{ width: "100%", alignItems: "center" }}>
+                <Barcode
+                  value={barcodeValue}
+                  format="CODE128"
+                  height={110}
+                  lineColor="#000000"
+                  background="#ffffff"
+                  maxWidth={Dimensions.get("window").width - 80}
                 />
               </View>
               <Text
