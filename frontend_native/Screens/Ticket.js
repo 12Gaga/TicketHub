@@ -139,9 +139,10 @@ export default function OfflineTicketGeneration() {
 
   const generateCode = () => {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    return Array.from({ length: 11 }, () =>
-      chars.charAt(Math.floor(Math.random() * chars.length)),
-    ).join("");
+    const array = new Uint8Array(11);
+    crypto.getRandomValues(array);
+
+    return Array.from(array, (num) => chars[num % chars.length]).join("");
   };
 
   const handleBooking = async () => {
