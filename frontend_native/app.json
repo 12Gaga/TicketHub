@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "K Concert",
-    "slug": "frontend_native",
+    "slug": "k_concert",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -22,7 +22,13 @@
         "backgroundColor": "#8B0000"
       },
       "edgeToEdgeEnabled": false,
-      "package": "com.myat_noe.tickethub"
+      "package": "com.myat_noe.tickethub",
+      "permissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+        "android.permission.READ_MEDIA_IMAGES"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -30,12 +36,21 @@
     "plugins": [
       "expo-font",
       "@react-native-community/datetimepicker",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-media-library",
+        {
+          "granularPermissions": [
+            "photo"
+          ]
+        }
+      ]
     ],
     "extra": {
       "eas": {
         "projectId": "6350b5b0-d0cc-4f2c-82a8-0c1a98acf753"
       }
-    }
+    },
+    "owner": "k_concert"
   }
 }

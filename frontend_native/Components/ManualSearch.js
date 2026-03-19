@@ -24,7 +24,7 @@ export default function ManualSearch() {
       {activeTab === "manual" && (
         <View>
           <Text style={tw`text-sm font-semibold text-gray-700 mb-2`}>
-            Enter QR code manually
+            Enter barcode or QR code manually
           </Text>
 
           {/* Input */}
@@ -32,7 +32,7 @@ export default function ManualSearch() {
             style={tw`flex-row items-center border border-gray-200 rounded-xl px-4 py-3 bg-white mb-3`}
           >
             <TextInput
-              placeholder="Paste or type QR code data"
+              placeholder="Paste or type barcode / QR data"
               placeholderTextColor="#9CA3AF"
               value={manualInput}
               onChangeText={setManualInput}

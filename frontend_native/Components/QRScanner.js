@@ -23,8 +23,8 @@ export default function QRScanner() {
             />
             <Text style={tw`flex-1 text-gray-500 text-xs leading-5`}>
               In a production environment, this would activate your device
-              camera to scan QR codes. For this demo, click the button below to
-              simulate a scan.
+              camera to scan ticket barcodes or QR codes. For this demo, click
+              the button below to simulate a scan.
             </Text>
           </View>
 
@@ -50,7 +50,7 @@ export default function QRScanner() {
                     style={tw`mr-2`}
                   />
                   <Text style={tw`text-white font-bold text-sm`}>
-                    Simulate QR Scan
+                    Simulate Ticket Scan
                   </Text>
                 </>
               )}

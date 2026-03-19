@@ -100,7 +100,9 @@ export default function GenerateQRScreen({ route }) {
     try {
       const uri = await captureRef(qrRef, { format: "png", quality: 1 });
 
-      const { status } = await MediaLibrary.requestPermissionsAsync();
+      const { status } = await MediaLibrary.requestPermissionsAsync(false, [
+        "photo",
+      ]);
       if (status !== "granted") {
         setText("Permission denied. Cannot save to gallery.");
         setFailModal(true);
@@ -340,6 +342,11 @@ export default function GenerateQRScreen({ route }) {
                   maxWidth={Dimensions.get("window").width - 80}
                 />
               </View>
+              <Text
+                style={tw`mt-3 text-sm text-gray-700 tracking-[3px] font-semibold`}
+              >
+                {barcodeValue}
+              </Text>
               <Text
                 style={tw`mt-3.5 text-xs text-gray-500 tracking-wide font-medium`}
               >
