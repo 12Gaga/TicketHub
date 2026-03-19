@@ -138,11 +138,21 @@ export default function OfflineTicketGeneration() {
   };
 
   const generateCode = () => {
-    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    const array = new Uint8Array(11);
-    crypto.getRandomValues(array);
+    const cryptoObject = globalThis.crypto;
 
-    return Array.from(array, (num) => chars[num % chars.length]).join("");
+    if (cryptoObject?.getRandomValues) {
+      const array = new Uint8Array(11);
+      cryptoObject.getRandomValues(array);
+
+      return Array.from(array, (num) => num % 10).join("");
+    }
+
+    const timestamp = Date.now().toString();
+    const randomPart = Math.floor(Math.random() * 100000)
+      .toString()
+      .padStart(5, "0");
+
+    return (timestamp + randomPart).slice(-11);
   };
 
   const handleBooking = async () => {
