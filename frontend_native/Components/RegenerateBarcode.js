@@ -38,23 +38,6 @@ export default function RegenerateBarcode() {
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [ticketModal, setTicketModal] = useState(false);
 
-  useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        const result = await globalApi.getEvents();
-        setEvents(result.data.data);
-      } catch (error) {
-        console.log("Error:", error);
-      }
-    };
-    const fetchUser = async () => {
-      const storedUser = await UserAuth.getUserAuth();
-      if (storedUser) setUser(storedUser);
-    };
-    fetchUser();
-    fetchEvents();
-  }, []);
-
   const handleSearchByName = async () => {
     if (!searchName.trim()) return;
     setSearching(true);

@@ -127,12 +127,12 @@ export default function DashboardScreen() {
   // ── Derived stats ──
   const totalTickets = (bookedTickets ?? []).length;
 
-  // Online = Ticket_Id is blank/null, Offline = Ticket_Id has a value
+  // Online = Ticket_Status is false, Offline = Ticket_Status is true
   const onlineTickets = (bookedTickets ?? []).filter(
-    (t) => !t.Ticket_Id || t.Ticket_Id.trim() === "",
+    (t) => !t.Ticket_Status,
   ).length;
   const offlineTickets = (bookedTickets ?? []).filter(
-    (t) => t.Ticket_Id && t.Ticket_Id.trim() !== "",
+    (t) => t.Ticket_Status,
   ).length;
 
   // Check-in rate = checkIn count / totalTickets

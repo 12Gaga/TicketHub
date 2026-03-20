@@ -51,9 +51,9 @@ export default function BluetoothScanner() {
               style={tw`mr-3 mt-0.5`}
             />
             <Text style={tw`flex-1 text-gray-500 text-xs leading-5`}>
-              Connect your Bluetooth scanner and scan a QR code. The ID will be
-              captured automatically and looked up after {DEBOUNCE_DELAY / 1000}
-              s.
+              Connect your Bluetooth scanner and scan a ticket barcode or QR
+              code. The ID will be captured automatically and looked up after{" "}
+              {DEBOUNCE_DELAY / 1000}s.
             </Text>
           </View>
 

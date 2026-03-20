@@ -83,10 +83,11 @@ const bulkCreateTickets = (tickets) =>
 const uploadFile = (formData) =>
   api.post("/upload", formData, {
     headers: { "Content-Type": "multipart/form-data" },
+    transformRequest: (data) => data,
   });
 const searchBookedTicketByName = (name) =>
   api.get(
-    `/booked-tickets?filters[Name][$containsi]=${encodeURIComponent(name)}&populate=*&pagination[start]=0&pagination[limit]=10000`,
+    `/booked-tickets?filters[Name][$containsi]=${name}&populate[event][populate]=Image&populate=ticket`,
   );
 export default {
   checkUser,

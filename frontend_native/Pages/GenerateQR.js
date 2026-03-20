@@ -68,7 +68,9 @@ export default function GenerateQRScreen({ route }) {
 
   const handleSave = async () => {
     try {
-      const { status } = await MediaLibrary.requestPermissionsAsync();
+      const { status } = await MediaLibrary.requestPermissionsAsync(false, [
+        "photo",
+      ]);
       if (status !== "granted") {
         setText(
           "Permission Denied : Allow gallery access to save the QR code.",

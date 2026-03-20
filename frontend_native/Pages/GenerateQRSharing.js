@@ -70,7 +70,12 @@ export default function GenerateQRScreen({ route }) {
   }
 
   const barcodeValue = documentId ? String(documentId) : "INVALID";
-  const imageUrl = eventImage ? `${STRAPI_URL}${eventImage}` : null;
+  console.log("eventImage:", eventImage);
+  const imageUrl = eventImage
+    ? eventImage.startsWith("http")
+      ? eventImage
+      : `https://loved-kindness-ad57dad94c.strapiapp.com${eventImage}`
+    : null;
 
   const qrRef = useRef(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -169,7 +174,7 @@ export default function GenerateQRScreen({ route }) {
                 <Image
                   source={{ uri: imageUrl }}
                   style={{ width: "100%", height: "100%" }}
-                  resizeMode="contain"
+                  resizeMode="cover"
                 />
               ) : (
                 <LinearGradient
@@ -190,70 +195,95 @@ export default function GenerateQRScreen({ route }) {
 
             {/* ── BOTTOM: Ticket Details ── */}
             <View style={{ backgroundColor: "#FFFFFF", padding: 16 }}>
+              {/* Customer Name */}
+              <View style={{ marginBottom: 10 }}>
+                <Text
+                  style={{
+                    fontSize: 9,
+                    color: "#888",
+                    fontWeight: "700",
+                    letterSpacing: 1,
+                  }}
+                >
+                  TICKET HOLDER NAME
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 13,
+                    color: "#151415",
+                    fontWeight: "800",
+                  }}
+                >
+                  {customerName?.toUpperCase()}
+                </Text>
+              </View>
+
               {/* Event Name */}
-              <Text
-                style={{
-                  fontSize: 18,
-                  fontWeight: "900",
-                  color: "#1a0a00",
-                  marginBottom: 12,
-                  textAlign: "center",
-                  letterSpacing: 1,
-                }}
-              >
-                {eventName?.toUpperCase()}
-              </Text>
+              <View style={{ marginBottom: 10 }}>
+                <Text
+                  style={{
+                    fontSize: 9,
+                    color: "#888",
+                    fontWeight: "700",
+                    letterSpacing: 1,
+                  }}
+                >
+                  EVENT NAME
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 13,
+                    color: "#151415",
+                    fontWeight: "700",
+                  }}
+                >
+                  {eventName}
+                </Text>
+              </View>
 
               {/* Date + Time Row */}
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  marginBottom: 10,
-                }}
-              >
-                <View>
-                  <Text
-                    style={{
-                      fontSize: 9,
-                      color: "#888",
-                      fontWeight: "700",
-                      letterSpacing: 1,
-                    }}
-                  >
-                    DATE
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 12,
-                      color: "#1a0a00",
-                      fontWeight: "700",
-                    }}
-                  >
-                    {formatDate(eventDate)}
-                  </Text>
-                </View>
-                <View style={{ alignItems: "flex-end" }}>
-                  <Text
-                    style={{
-                      fontSize: 9,
-                      color: "#888",
-                      fontWeight: "700",
-                      letterSpacing: 1,
-                    }}
-                  >
-                    TIME
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 12,
-                      color: "#1a0a00",
-                      fontWeight: "700",
-                    }}
-                  >
-                    {formatTime(eventTime)}
-                  </Text>
-                </View>
+              <View style={{ marginBottom: 12 }}>
+                <Text
+                  style={{
+                    fontSize: 9,
+                    color: "#888",
+                    fontWeight: "700",
+                    letterSpacing: 1,
+                  }}
+                >
+                  EVENT DATE
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: "#1a0a00",
+                    fontWeight: "700",
+                  }}
+                >
+                  {formatDate(eventDate)}
+                </Text>
+              </View>
+
+              <View style={{ marginBottom: 12 }}>
+                <Text
+                  style={{
+                    fontSize: 9,
+                    color: "#888",
+                    fontWeight: "700",
+                    letterSpacing: 1,
+                  }}
+                >
+                  EVENT TIME
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: "#1a0a00",
+                    fontWeight: "700",
+                  }}
+                >
+                  {formatTime(eventTime)}
+                </Text>
               </View>
 
               {/* Venue */}
@@ -266,7 +296,7 @@ export default function GenerateQRScreen({ route }) {
                     letterSpacing: 1,
                   }}
                 >
-                  VENUE
+                  EVENT VENUE
                 </Text>
                 <Text
                   style={{
@@ -302,7 +332,7 @@ export default function GenerateQRScreen({ route }) {
                     style={{
                       fontSize: 13,
                       color: "#1a0a00",
-                      fontWeight: "800",
+                      fontWeight: "700",
                     }}
                   >
                     {ticketType}
@@ -319,7 +349,7 @@ export default function GenerateQRScreen({ route }) {
                         letterSpacing: 1,
                       }}
                     >
-                      SEAT
+                      SEAT No.
                     </Text>
                     <Text
                       style={{
@@ -334,29 +364,6 @@ export default function GenerateQRScreen({ route }) {
                 ) : null}
               </View>
 
-              {/* Customer Name */}
-              <View style={{ marginBottom: 10 }}>
-                <Text
-                  style={{
-                    fontSize: 9,
-                    color: "#888",
-                    fontWeight: "700",
-                    letterSpacing: 1,
-                  }}
-                >
-                  CUSTOMER NAME
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 13,
-                    color: "#151415",
-                    fontWeight: "800",
-                  }}
-                >
-                  {customerName?.toUpperCase()}
-                </Text>
-              </View>
-
               {/* Ticket No */}
               <View style={{ marginBottom: 10 }}>
                 <Text
@@ -367,13 +374,13 @@ export default function GenerateQRScreen({ route }) {
                     letterSpacing: 1,
                   }}
                 >
-                  BOOKING REFERENCE
+                  BOOKING REFERENCE No.
                 </Text>
                 <Text
                   style={{
                     fontSize: 13,
                     color: "#1a0a00",
-                    fontWeight: "800",
+                    fontWeight: "700",
                   }}
                 >
                   {documentId}
