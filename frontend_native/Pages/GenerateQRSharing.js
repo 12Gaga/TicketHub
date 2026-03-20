@@ -7,6 +7,7 @@ import {
   Animated,
   StatusBar,
   Dimensions,
+  Image,
 } from "react-native";
 import { captureRef } from "react-native-view-shot";
 import { LinearGradient } from "expo-linear-gradient";
@@ -16,6 +17,9 @@ import { useNavigation } from "@react-navigation/native";
 import PopUpAlert from "../Components/PopUpAlert";
 import * as MediaLibrary from "expo-media-library";
 import { Barcode } from "react-native-svg-barcode";
+
+const SCREEN_WIDTH = Dimensions.get("window").width;
+const STRAPI_URL = "https://loved-kindness-ad57dad94c.strapiapp.com";
 
 export default function GenerateQRScreen({ route }) {
   const navigation = useNavigation();
@@ -31,6 +35,8 @@ export default function GenerateQRScreen({ route }) {
     eventTime,
     eventVenue,
     customerName,
+    seatNo,
+    eventImage,
   } = route?.params ?? {
     documentId: "u52jpr6kwzm8e9fsme397tzm",
     ticketType: "VIP",
@@ -38,6 +44,9 @@ export default function GenerateQRScreen({ route }) {
     eventDate: "",
     eventVenue: "",
     customerName: "Unknown",
+    seatNo: "",
+    ticketId: "",
+    eventImage: null,
   };
 
   function formatTime(timeStr) {
@@ -59,38 +68,25 @@ export default function GenerateQRScreen({ route }) {
       day: "numeric",
     });
   }
-  console.log("documentId", documentId);
+
   const barcodeValue = documentId ? String(documentId) : "INVALID";
+  const imageUrl = eventImage ? `${STRAPI_URL}${eventImage}` : null;
+
   const qrRef = useRef(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(40)).current;
-  const scaleAnim = useRef(new Animated.Value(0.88)).current;
-  const badgeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.sequence([
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 600,
-          useNativeDriver: true,
-        }),
-        Animated.spring(slideAnim, {
-          toValue: 0,
-          tension: 60,
-          friction: 10,
-          useNativeDriver: true,
-        }),
-        Animated.spring(scaleAnim, {
-          toValue: 1,
-          tension: 80,
-          friction: 8,
-          useNativeDriver: true,
-        }),
-      ]),
-      Animated.timing(badgeAnim, {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 400,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        tension: 60,
+        friction: 10,
         useNativeDriver: true,
       }),
     ]).start();
@@ -99,80 +95,48 @@ export default function GenerateQRScreen({ route }) {
   const handleSave = async () => {
     try {
       const uri = await captureRef(qrRef, { format: "png", quality: 1 });
-
       const { status } = await MediaLibrary.requestPermissionsAsync();
       if (status !== "granted") {
         setText("Permission denied. Cannot save to gallery.");
         setFailModal(true);
         return;
       }
-
       const asset = await MediaLibrary.createAssetAsync(uri);
       const album = await MediaLibrary.getAlbumAsync("Download");
-
       if (album == null) {
         await MediaLibrary.createAlbumAsync("Download", asset, false);
       } else {
         await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
       }
-
       setText("✅ Ticket saved to Downloads!");
       setSuccessModal(true);
     } catch (err) {
-      console.error("Save error:", err);
       setText("Failed to save ticket.");
       setFailModal(true);
     }
   };
 
   return (
-    <View style={tw`flex-1 bg-white`}>
-      <StatusBar barStyle="light-content" backgroundColor="#0A0A14" />
-
-      {/* Background orbs */}
-      <View
-        style={tw`absolute w-80 h-80 rounded-full bg-violet-700 opacity-10 -top-20 -right-20`}
-      />
-      <View
-        style={tw`absolute w-60 h-60 rounded-full bg-blue-600 opacity-10 bottom-16 -left-16`}
-      />
+    <View style={tw`flex-1 bg-gray-100`}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F3F4F6" />
 
       <ScrollView
-        contentContainerStyle={tw`pt-14 pb-12 px-5 items-center`}
+        contentContainerStyle={tw`pt-10 pb-12 px-4 items-center`}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Success Badge ── */}
-        <Animated.View
-          style={[
-            tw`mb-5`,
-            {
-              opacity: badgeAnim,
-              transform: [
-                {
-                  scale: badgeAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.5, 1],
-                  }),
-                },
-              ],
-            },
-          ]}
+        <LinearGradient
+          colors={["#7C3AED", "#4F46E5"]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={tw`flex-row items-center px-4 py-2 rounded-full`}
         >
-          <LinearGradient
-            colors={["#7C3AED", "#4F46E5"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={tw`flex-row items-center px-4 py-2 rounded-full`}
+          <Ionicons name="checkmark-circle" size={16} color="#fff" />
+          <Text
+            style={tw`text-white text-xs font-semibold tracking-wide ml-1.5`}
           >
-            <Ionicons name="checkmark-circle" size={16} color="#fff" />
-            <Text
-              style={tw`text-white text-xs font-semibold tracking-wide ml-1.5`}
-            >
-              Booking Confirmed
-            </Text>
-          </LinearGradient>
-        </Animated.View>
-
+            Booking Confirmed
+          </Text>
+        </LinearGradient>
         {/* ── Ticket Card ── */}
         <Animated.View
           ref={qrRef}
@@ -181,182 +145,328 @@ export default function GenerateQRScreen({ route }) {
             tw`w-full`,
             {
               opacity: fadeAnim,
-              transform: [{ scale: scaleAnim }, { translateY: slideAnim }],
-              shadowColor: "#7C3AED",
-              shadowOffset: { width: 0, height: 12 },
-              shadowOpacity: 0.4,
-              shadowRadius: 24,
-              elevation: 16,
+              transform: [{ translateY: slideAnim }],
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 8 },
+              shadowOpacity: 0.2,
+              shadowRadius: 16,
+              elevation: 12,
+              borderRadius: 16,
+              marginTop: 10,
             },
           ]}
         >
-          <View
-            style={tw`bg-white rounded-3xl overflow-hidden border border-violet-900 border-opacity-30`}
-          >
-            {/* Top gradient accent */}
-            <LinearGradient
-              colors={["#7C3AED", "#4F46E5", "#2563EB"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={tw`h-1 w-full`}
-            />
-
-            {/* ── Info Lines ── */}
-            <View style={tw`px-6 pt-6 pb-5`}>
-              {/* Customer Name */}
-              <View style={tw`flex-row items-start mb-4`}>
-                <View>
-                  <Text
-                    style={tw`text-xs text-gray-500 font-bold tracking-widest mb-0.5`}
-                  >
-                    {"CUSTOMER NAME"}
-                  </Text>
-                  <Text style={tw`text-base font-bold text-violet-400`}>
-                    {customerName}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Ticket Type */}
-              <View style={tw`flex-row items-start mb-4`}>
-                <View>
-                  <Text
-                    style={tw`text-xs text-gray-500 font-bold tracking-widest mb-0.5`}
-                  >
-                    {"TICKET TYPE"}
-                  </Text>
-                  <Text style={tw`text-base font-bold text-violet-400`}>
-                    {ticketType}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={tw`h-px bg-gray-100 ml-5 mb-4`} />
-
-              {/* Event Name */}
-              <View style={tw`flex-row items-start mb-4`}>
-                <View>
-                  <Text
-                    style={tw`text-xs text-gray-500 font-bold tracking-widest mb-0.5`}
-                  >
-                    {"EVENT NAME"}
-                  </Text>
-                  <Text style={tw`text-base font-bold text-violet-400`}>
+          <View style={{ borderRadius: 16, overflow: "hidden" }}>
+            {/* ── TOP: Portrait Event Image ── */}
+            <View
+              style={{
+                width: "100%",
+                aspectRatio: 1000 / 1234,
+                backgroundColor: "#000",
+              }}
+            >
+              {imageUrl ? (
+                <Image
+                  source={{ uri: imageUrl }}
+                  style={{ width: "100%", height: "100%" }}
+                  resizeMode="contain"
+                />
+              ) : (
+                <LinearGradient
+                  colors={["#8349e8", "#e2e2ea"]}
+                  style={{
+                    flex: 1,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Ionicons name="musical-notes" size={50} color="#fff" />
+                  <Text style={tw`text-white text-base mt-2 font-bold`}>
                     {eventName}
                   </Text>
-                </View>
-              </View>
+                </LinearGradient>
+              )}
+            </View>
 
-              {/* Event Date */}
-              <View style={tw`flex-row items-start mb-4`}>
+            {/* ── BOTTOM: Ticket Details ── */}
+            <View style={{ backgroundColor: "#FFFFFF", padding: 16 }}>
+              {/* Event Name */}
+              <Text
+                style={{
+                  fontSize: 18,
+                  fontWeight: "900",
+                  color: "#1a0a00",
+                  marginBottom: 12,
+                  textAlign: "center",
+                  letterSpacing: 1,
+                }}
+              >
+                {eventName?.toUpperCase()}
+              </Text>
+
+              {/* Date + Time Row */}
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  marginBottom: 10,
+                }}
+              >
                 <View>
                   <Text
-                    style={tw`text-xs text-gray-500 font-bold tracking-widest mb-0.5`}
+                    style={{
+                      fontSize: 9,
+                      color: "#888",
+                      fontWeight: "700",
+                      letterSpacing: 1,
+                    }}
                   >
-                    {"EVENT DATE"}
+                    DATE
                   </Text>
-                  <Text style={tw`text-base font-bold text-violet-400`}>
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: "#1a0a00",
+                      fontWeight: "700",
+                    }}
+                  >
                     {formatDate(eventDate)}
                   </Text>
                 </View>
-              </View>
-
-              {/* Event Time */}
-              <View style={tw`flex-row items-start mb-4`}>
-                <View>
+                <View style={{ alignItems: "flex-end" }}>
                   <Text
-                    style={tw`text-xs text-gray-500 font-bold tracking-widest mb-0.5`}
+                    style={{
+                      fontSize: 9,
+                      color: "#888",
+                      fontWeight: "700",
+                      letterSpacing: 1,
+                    }}
                   >
-                    {"EVENT TIME"}
+                    TIME
                   </Text>
-                  <Text style={tw`text-base font-bold text-violet-400`}>
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: "#1a0a00",
+                      fontWeight: "700",
+                    }}
+                  >
                     {formatTime(eventTime)}
                   </Text>
                 </View>
               </View>
 
-              {/* Event Venue */}
-              <View style={tw`flex-row items-start mb-4`}>
+              {/* Venue */}
+              <View style={{ marginBottom: 10 }}>
+                <Text
+                  style={{
+                    fontSize: 9,
+                    color: "#888",
+                    fontWeight: "700",
+                    letterSpacing: 1,
+                  }}
+                >
+                  VENUE
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: "#1a0a00",
+                    fontWeight: "700",
+                  }}
+                >
+                  {eventVenue?.toUpperCase()}
+                </Text>
+              </View>
+
+              {/* Ticket Type + Seat Row */}
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  marginBottom: 10,
+                }}
+              >
                 <View>
                   <Text
-                    style={tw`text-xs text-gray-500 font-bold tracking-widest mb-0.5`}
+                    style={{
+                      fontSize: 9,
+                      color: "#888",
+                      fontWeight: "700",
+                      letterSpacing: 1,
+                    }}
                   >
-                    {"EVENT VENUE"}
-                  </Text>
-                  <Text style={tw`text-base font-bold text-violet-400`}>
-                    {eventVenue ?? "TBA"}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={tw`h-px bg-gray-100 ml-5 mb-4`} />
-
-              {/* Booking Reference */}
-              <View style={tw`flex-row items-start`}>
-                <View style={tw`flex-1`}>
-                  <Text
-                    style={tw`text-xs text-gray-500 font-bold tracking-widest mb-0.5`}
-                  >
-                    {"BOOKING REFERENCE"}
+                    TICKET TYPE
                   </Text>
                   <Text
-                    style={tw`text-sm font-semibold text-violet-400`}
-                    numberOfLines={1}
+                    style={{
+                      fontSize: 13,
+                      color: "#1a0a00",
+                      fontWeight: "800",
+                    }}
                   >
-                    {documentId}
+                    {ticketType}
                   </Text>
                 </View>
+                {/* Seat No */}
+                {seatNo ? (
+                  <View style={{ alignItems: "flex-end" }}>
+                    <Text
+                      style={{
+                        fontSize: 9,
+                        color: "#888",
+                        fontWeight: "700",
+                        letterSpacing: 1,
+                      }}
+                    >
+                      SEAT
+                    </Text>
+                    <Text
+                      style={{
+                        fontSize: 13,
+                        color: "#1a0a00",
+                        fontWeight: "800",
+                      }}
+                    >
+                      {seatNo.toUpperCase()}
+                    </Text>
+                  </View>
+                ) : null}
               </View>
-            </View>
 
-            {/* By K Concert */}
-            <View style={tw`h-px bg-gray-100 mx-5 mt-2 mb-3`} />
-            <View style={tw`flex-row items-center justify-center mb-2`}>
-              <Text
-                style={tw`text-xs text-gray-400 tracking-widest font-semibold`}
+              {/* Customer Name */}
+              <View style={{ marginBottom: 10 }}>
+                <Text
+                  style={{
+                    fontSize: 9,
+                    color: "#888",
+                    fontWeight: "700",
+                    letterSpacing: 1,
+                  }}
+                >
+                  CUSTOMER NAME
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 13,
+                    color: "#151415",
+                    fontWeight: "800",
+                  }}
+                >
+                  {customerName?.toUpperCase()}
+                </Text>
+              </View>
+
+              {/* Ticket No */}
+              <View style={{ marginBottom: 10 }}>
+                <Text
+                  style={{
+                    fontSize: 9,
+                    color: "#888",
+                    fontWeight: "700",
+                    letterSpacing: 1,
+                  }}
+                >
+                  BOOKING REFERENCE
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 13,
+                    color: "#1a0a00",
+                    fontWeight: "800",
+                  }}
+                >
+                  {documentId}
+                </Text>
+              </View>
+
+              {/* Tear Line */}
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  marginVertical: 12,
+                }}
               >
-                By K Concert
-              </Text>
-            </View>
+                <View
+                  style={{
+                    width: 16,
+                    height: 16,
+                    borderRadius: 8,
+                    backgroundColor: "#F3F4F6",
+                    marginLeft: -24,
+                  }}
+                />
+                {Array.from({ length: 22 }).map((_, i) => (
+                  <View
+                    key={i}
+                    style={{
+                      flex: 1,
+                      height: 1,
+                      backgroundColor: "#C9A84C",
+                      marginHorizontal: 2,
+                    }}
+                  />
+                ))}
+                <View
+                  style={{
+                    width: 16,
+                    height: 16,
+                    borderRadius: 8,
+                    backgroundColor: "#F3F4F6",
+                    marginRight: -24,
+                  }}
+                />
+              </View>
 
-            {/* ── Tear Line ── */}
-            <View style={tw`flex-row items-center`}>
-              <View style={tw`w-5 h-5 rounded-full bg-[#0A0A14] -ml-2.5`} />
-              {Array.from({ length: 18 }).map((_, i) => (
-                <View key={i} style={tw`flex-1 h-px bg-violet-900 mx-0.5`} />
-              ))}
-              <View style={tw`w-5 h-5 rounded-full bg-[#0A0A14] -mr-2.5`} />
-            </View>
-
-            {/* ── Barcode ── */}
-            <View style={tw`items-center py-7 px-6`}>
-              <View style={{ width: "100%", alignItems: "center" }}>
+              {/* Barcode */}
+              <View
+                style={{
+                  alignItems: "center",
+                  paddingVertical: 10,
+                  backgroundColor: "#fff",
+                  borderRadius: 8,
+                }}
+              >
                 <Barcode
                   value={barcodeValue}
                   format="CODE128"
-                  height={110}
+                  height={70}
                   lineColor="#000000"
                   background="#ffffff"
-                  maxWidth={Dimensions.get("window").width - 80}
+                  maxWidth={SCREEN_WIDTH - 80}
                 />
+                <Text
+                  style={{
+                    fontSize: 9,
+                    color: "#888",
+                    marginTop: 4,
+                    letterSpacing: 2,
+                  }}
+                >
+                  {barcodeValue}
+                </Text>
               </View>
+
+              {/* Footer */}
               <Text
-                style={tw`mt-3.5 text-xs text-gray-500 tracking-wide font-medium`}
+                style={{
+                  textAlign: "center",
+                  fontSize: 10,
+                  color: "#aaa",
+                  marginTop: 10,
+                  letterSpacing: 2,
+                  fontWeight: "600",
+                }}
               >
-                Scan to verify ticket
+                BY K CONCERT
               </Text>
             </View>
           </View>
         </Animated.View>
 
         {/* ── Buttons ── */}
-        <Animated.View
-          style={[
-            tw`w-full mt-7`,
-            { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
-          ]}
-        >
-          {/* Save to Gallery */}
+        <Animated.View style={[tw`w-full mt-6`, { opacity: fadeAnim }]}>
           <TouchableOpacity
             onPress={handleSave}
             activeOpacity={0.85}
@@ -371,24 +481,23 @@ export default function GenerateQRScreen({ route }) {
               <Ionicons
                 name="download-outline"
                 size={20}
-                color="#fff"
+                color="#ffffff"
                 style={tw`mr-2.5`}
               />
-              <Text style={tw`text-white text-base font-bold tracking-wide`}>
+              <Text
+                style={{ color: "#FFFFFF", fontSize: 15, fontWeight: "800" }}
+              >
                 Save Ticket
               </Text>
             </LinearGradient>
           </TouchableOpacity>
 
-          {/* Back to Home */}
           <TouchableOpacity
             onPress={() => navigation.goBack()}
             activeOpacity={0.7}
-            style={tw`items-center py-3.5 rounded-2xl border border-violet-800`}
+            style={tw`items-center py-3.5 rounded-2xl border border-indigo-600`}
           >
-            <Text
-              style={tw`text-violet-400 text-sm font-semibold tracking-wide`}
-            >
+            <Text style={tw`text-indigo-600 text-sm font-semibold`}>
               Back to Home
             </Text>
           </TouchableOpacity>

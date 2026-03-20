@@ -21,6 +21,7 @@ import * as Sharing from "expo-sharing";
 import CreateAgent from "../Components/CreateAgent";
 import { ExportContext } from "../Configs/AuthContext";
 import ExportEventsTicket from "../Components/ExportEventsTicket";
+import RegenerateBarcode from "../Components/RegenerateBarcode";
 
 function sanitizeFileName(value) {
   return (value ?? "")
@@ -435,6 +436,7 @@ export default function ReportScreen() {
               </>
             )}
           </TouchableOpacity>
+          <RegenerateBarcode />
 
           <ExportEventsTicket />
 

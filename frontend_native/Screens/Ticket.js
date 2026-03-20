@@ -218,6 +218,7 @@ export default function OfflineTicketGeneration() {
             (t) => t.documentId == data.ticket,
           );
           const customerName = data.Name;
+          const seatNo = data.SeatNo;
           setData({
             event: data.event,
             Name: "",
@@ -241,6 +242,8 @@ export default function OfflineTicketGeneration() {
             eventVenue: event.Venue,
             eventTime: event.Time,
             customerName: customerName,
+            seatNo: seatNo,
+            eventImage: event.Image?.url,
           });
         }
       }

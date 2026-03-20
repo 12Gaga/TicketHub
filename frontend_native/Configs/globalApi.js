@@ -54,7 +54,7 @@ const changeEventStatus = (documentId, status = false) =>
   });
 const getBookedTicket = (ticketID, eventID) =>
   api.get(
-    `/booked-tickets?filters[ticket][documentId][$eq]=${ticketID}&filters[event][documentId][$eq]=${eventID}&populate=*`,
+    `/booked-tickets?filters[ticket][documentId][$eq]=${ticketID}&filters[event][documentId][$eq]=${eventID}&populate=*&pagination[start]=0&pagination[limit]=10000`,
   );
 const getAllBookedTickets = () =>
   api.get(
@@ -62,7 +62,7 @@ const getAllBookedTickets = () =>
   );
 const getBookedTicketByEvent = (eventID) =>
   api.get(
-    `/booked-tickets?filters[event][documentId][$eq]=${eventID}&populate=*`,
+    `/booked-tickets?filters[event][documentId][$eq]=${eventID}&populate=*&pagination[start]=0&pagination[limit]=10000`,
   );
 const getTicketLimit = (eventID) =>
   api.get(
@@ -84,6 +84,10 @@ const uploadFile = (formData) =>
   api.post("/upload", formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
+const searchBookedTicketByName = (name) =>
+  api.get(
+    `/booked-tickets?filters[Name][$containsi]=${encodeURIComponent(name)}&populate=*&pagination[start]=0&pagination[limit]=10000`,
+  );
 export default {
   checkUser,
   getTicket,
@@ -106,4 +110,5 @@ export default {
   setAgent,
   uploadFile,
   getAllBookedTickets,
+  searchBookedTicketByName,
 };
