@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "K Concert",
-    "slug": "k_concert",
+    "slug": "frontend_native",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -51,6 +51,6 @@
         "projectId": "6350b5b0-d0cc-4f2c-82a8-0c1a98acf753"
       }
     },
-    "owner": "k_concert"
+    "owner": "myat_noe"
   }
 }
