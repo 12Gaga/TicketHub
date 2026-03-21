@@ -5,7 +5,6 @@ import LoginPage from "../Pages/Login";
 import UserAuth from "./UserAuth";
 import HomePage from "../Pages/Home";
 import GenerateQRScreenSharing from "../Pages/GenerateQRSharing";
-import globalApi from "./globalApi";
 import { setNavigator } from "./globalApi";
 
 const Stack = createNativeStackNavigator();
@@ -18,29 +17,6 @@ const isTokenExpired = (token) => {
   } catch {
     return true;
   }
-};
-
-const checkUserWithRetry = async (storedUser, retries = 2) => {
-  for (let i = 0; i <= retries; i++) {
-    const resp = await globalApi.checkUser({
-      identifier: storedUser.username,
-      password: storedUser.password,
-    });
-
-    console.log(`Attempt ${i + 1} - status:`, resp.status, "ok:", resp.ok);
-
-    if (resp.ok && resp.data?.jwt) {
-      return { valid: true, token: resp.data.jwt }; // ✅ return fresh token
-    } else if (resp.status === 401) {
-      return { valid: false }; // ❌ wrong password
-    } else {
-      if (i < retries) {
-        console.log(`Cold start or error, retrying in 3s...`);
-        await new Promise((res) => setTimeout(res, 3000));
-      }
-    }
-  }
-  return { valid: true, coldStart: true }; // cold start — trust stored user
 };
 
 export default function Navigations({ navigationRef }) {
@@ -65,21 +41,7 @@ export default function Navigations({ navigationRef }) {
           return;
         }
 
-        // ✅ Step 2: token valid — verify password in case it changed
-        const { valid, token } = await checkUserWithRetry(storedUser);
-        if (valid) {
-          // ✅ update token if we got a fresh one
-          if (token) {
-            const updatedUser = { ...storedUser, token };
-            await UserAuth.setUserAuth(updatedUser);
-            setUser(updatedUser);
-          } else {
-            setUser(storedUser);
-          }
-        } else {
-          await UserAuth.logout();
-          setUser(null);
-        }
+        setUser(storedUser);
       } catch (error) {
         console.error("Error:", error);
         setUser(null);
@@ -132,19 +94,6 @@ export default function Navigations({ navigationRef }) {
                 routes: [{ name: "login" }],
               });
               return;
-            }
-
-            // ✅ token valid — still verify password in case it changed
-            const { valid, token } = await checkUserWithRetry(storedUser);
-            if (!valid) {
-              await UserAuth.logout();
-              navigationRef.current?.reset({
-                index: 0,
-                routes: [{ name: "login" }],
-              });
-            } else if (token) {
-              // ✅ refresh stored token
-              await UserAuth.setUserAuth({ ...storedUser, token });
             }
           } catch (err) {
             console.log("AppState auth check error:", err);

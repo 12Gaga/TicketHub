@@ -17,7 +17,10 @@ export const setNavigator = (nav) => {
 api.addAsyncResponseTransform(async (response) => {
   if (response.status === 401) {
     await UserAuth.logout();
-    _navigator?.navigate("login");
+    _navigator?.reset({
+      index: 0,
+      routes: [{ name: "login" }],
+    });
   }
 });
 

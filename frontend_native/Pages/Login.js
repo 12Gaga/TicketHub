@@ -29,7 +29,6 @@ export default function LoginPage() {
           documentId: resp.data.user.documentId,
           email: resp.data.user.email,
           username: resp.data.user.username,
-          password: data.password,
           token: resp.data.jwt,
         };
         console.log("LogInData", Login_User);
