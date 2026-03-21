@@ -71,47 +71,69 @@ export default function CheckInScreen() {
     fetchUser();
   }, []);
 
-  // ── Fetch ticket by documentId ──
+  const normalizeTicketList = (resp) => {
+    const ticketData = resp?.data?.data;
+
+    if (Array.isArray(ticketData)) {
+      return ticketData;
+    }
+
+    if (ticketData) {
+      return [ticketData];
+    }
+
+    return [];
+  };
+
+  const lookupTicketByIdentifier = async (identifier) => {
+    // Try custom Ticket_Id first; fall back to documentId if needed.
+    const lookups = [
+      () => globalApi.getTicketByTicketUniqueId(identifier),
+      () => globalApi.getTicketByDocumentId(identifier),
+    ];
+
+    let sawLookupError = false;
+
+    for (const lookup of lookups) {
+      const resp = await lookup();
+      const tickets = normalizeTicketList(resp);
+
+      if (resp.ok && tickets.length > 0) {
+        return tickets;
+      }
+
+      if (!resp.ok && resp.status !== 404) {
+        sawLookupError = true;
+      }
+    }
+
+    if (sawLookupError) {
+      throw new Error("Ticket lookup failed.");
+    }
+
+    return [];
+  };
+
+  // ── Fetch ticket by Ticket_Id first, then documentId ──
   const fetchTicket = async (documentId) => {
     const id = documentId?.trim();
     console.log("documentid", documentId);
     if (!id) return;
     setLoading(true);
     setResult(null);
-    const idLength = id.length;
-    console.log("length", idLength);
     try {
-      let resp;
-      if (idLength === 24) {
-        resp = await globalApi.getTicketByDocumentId(id);
-      } else {
-        resp = await globalApi.getTicketByTicketUniqueId(id);
-      }
+      const ticketData = await lookupTicketByIdentifier(id);
 
-      if (resp.ok && resp.data?.data) {
-        const ticketData = resp.data.data;
-
-        // ✅ handle empty array, null, or undefined
-        const isEmpty =
-          ticketData === null ||
-          ticketData === undefined ||
-          (Array.isArray(ticketData) && (ticketData ?? []).length === 0);
-
-        if (isEmpty) {
-          setResult({ success: false, message: "Ticket not found." });
-        } else {
-          setResult({ success: true, ticket: ticketData });
-        }
-      } else if (resp.status === 404) {
-        // ✅ Strapi returns 404 for invalid documentId
-        setResult({ success: false, message: "Ticket not found." });
-      } else if (!resp.ok) {
+      if (ticketData.length === 0) {
         setResult({ success: false, message: "Ticket not found." });
       } else {
-        setResult({ success: false, message: "Ticket not found." });
+        setResult({ success: true, ticket: ticketData });
       }
     } catch (err) {
-      setResult({ success: false, message: "Something went wrong." });
+      setResult({
+        success: false,
+        message: err?.message || "Something went wrong.",
+      });
     } finally {
       setLoading(false);
     }

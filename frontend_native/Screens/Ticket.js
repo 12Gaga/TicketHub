@@ -155,6 +155,42 @@ export default function OfflineTicketGeneration() {
     return (timestamp + randomPart).slice(-11);
   };
 
+  const normalizeTicketList = (resp) => {
+    const ticketData = resp?.data?.data;
+
+    if (Array.isArray(ticketData)) {
+      return ticketData;
+    }
+
+    if (ticketData) {
+      return [ticketData];
+    }
+
+    return [];
+  };
+
+  const hasLookupError = (resp) => !resp.ok && resp.status !== 404;
+
+  const ensureTicketIdIsAvailable = async (ticketId) => {
+    const [uniqueResp, documentResp] = await Promise.all([
+      globalApi.getTicketByTicketUniqueId(ticketId),
+      globalApi.getTicketByDocumentId(ticketId),
+    ]);
+
+    const uniqueTickets = normalizeTicketList(uniqueResp);
+    const documentTickets = normalizeTicketList(documentResp);
+
+    if (uniqueTickets.length > 0 || documentTickets.length > 0) {
+      return false;
+    }
+
+    if (hasLookupError(uniqueResp) || hasLookupError(documentResp)) {
+      throw new Error("Could not validate Ticket Id right now.");
+    }
+
+    return true;
+  };
+
   const handleBooking = async () => {
     if (
       !data.event ||
@@ -167,7 +203,31 @@ export default function OfflineTicketGeneration() {
       setFailModal(true);
       return;
     }
-    let idOfTicket = data.Ticket_Id;
+    let idOfTicket = data.Ticket_Id?.trim();
+
+    if (data.Ticket_Status) {
+      if (!idOfTicket) {
+        setFailedText("Ticket Id is required for offline booking.");
+        setFailModal(true);
+        return;
+      }
+
+      try {
+        const isAvailable = await ensureTicketIdIsAvailable(idOfTicket);
+        if (!isAvailable) {
+          setFailedText(
+            "Ticket Id already exists or conflicts with an existing ticket.",
+          );
+          setFailModal(true);
+          return;
+        }
+      } catch (validationError) {
+        setFailedText(validationError?.message || "Could not validate Ticket Id.");
+        setFailModal(true);
+        return;
+      }
+    }
+
     if (!data.Ticket_Status) {
       idOfTicket = generateCode();
     }
