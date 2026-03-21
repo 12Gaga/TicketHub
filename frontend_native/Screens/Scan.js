@@ -31,11 +31,14 @@ export default function CheckInScreen() {
   const [scanned, setScanned] = useState(false);
   const [manualInput, setManualInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [checkingIn, setCheckingIn] = useState(false);
   const [result, setResult] = useState(null);
   const [user, setUser] = useState(null);
   const [successModal, setSuccessModal] = useState(false);
   const [failModal, setFailModal] = useState(false);
   const [text, setText] = useState("");
+  const scannerInputRef = useRef(null);
+  const [recentCheckIn, setRecentCheckIn] = useState(null);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(24)).current;
@@ -155,41 +158,106 @@ export default function CheckInScreen() {
 
   // ── Mark as checked in ──
   const handleCheckIn = async () => {
-    if (!result?.ticket[0]?.documentId) return;
+    if (checkingIn) return;
+    if (!user?.documentId) {
+      setText("Scanner session is unavailable.");
+      setFailModal(true);
+      return;
+    }
+
+    const ticket = result?.ticket?.[0];
+    if (!ticket?.documentId) return;
+
+    setCheckingIn(true);
     try {
-      const ticket = result.ticket[0];
+      const ticketDocumentId = ticket.documentId;
+
       // 1. Update CheckIn_Status
       const resp = await globalApi.changeTicketStatus(
-        result.ticket[0].documentId,
+        ticketDocumentId,
         user.documentId,
       );
-      if (resp.ok) {
-        // 2. Create CheckIn record
-        const checkInPayload = {
-          data: {
-            Name: ticket.Name,
-            DateTime: new Date().toISOString(),
-            event: ticket.event?.documentId,
-          },
-        };
-        await globalApi.createCheckIn(checkInPayload.data);
-        // 3. Update local state
-        const updatedTickets = result.ticket.map((t, i) =>
-          i === 0 ? { ...t, CheckIn_Status: true } : t,
-        );
-        setResult({ ...result, ticket: updatedTickets });
-        setText(
-          `✅ Checked In : ${result.ticket[0].Name} has been checked in successfully.`,
-        );
-        setSuccessModal(true);
-      } else {
+
+      if (!resp.ok) {
         setText("Failed to check in ticket.");
         setFailModal(true);
+        return;
       }
-    } catch {
+
+      // 2. Create CheckIn record
+      const checkInResp = await globalApi.createCheckIn({
+        Name: ticket.Name,
+        DateTime: new Date().toISOString(),
+        event: ticket.event?.documentId,
+      });
+
+      // roll back if createCheckIn fail
+      if (!checkInResp.ok) {
+        const rollbackResp = await globalApi.changeTicketStatus(
+          ticketDocumentId,
+          user.documentId,
+          false,
+        );
+
+        if (!rollbackResp.ok) {
+          try {
+            const refreshResp = await globalApi.getTicketByDocumentId(
+              ticketDocumentId,
+            );
+            if (refreshResp.ok && refreshResp.data?.data) {
+              const refreshedTicket = Array.isArray(refreshResp.data.data)
+                ? refreshResp.data.data[0]
+                : refreshResp.data.data;
+
+              if (refreshedTicket) {
+                setResult({ success: true, ticket: [refreshedTicket] });
+              }
+            }
+          } catch (refreshErr) {
+            console.log("Ticket refresh after rollback failure:", refreshErr);
+          }
+
+          setText(
+            "Check-in record failed and ticket status could not be reverted. Please refresh or reconcile manually.",
+          );
+        } else {
+          setText("Check-in record failed. Ticket status was reverted.");
+        }
+
+        setFailModal(true);
+        return;
+      }
+
+      // 3. Update local state only after both writes succeed
+      const updatedTickets = result.ticket.map((t, i) =>
+        i === 0 ? { ...t, CheckIn_Status: true } : t,
+      );
+      setResult({ ...result, ticket: updatedTickets });
+      setRecentCheckIn({
+        Name: ticket.Name,
+        DateTime: new Date().toISOString(),
+        event: ticket.event
+          ? {
+              documentId: ticket.event.documentId,
+              Name: ticket.event.Name,
+            }
+          : null,
+      });
+      setText(`✅ Checked In : ${ticket.Name} has been checked in successfully.`);
+      setSuccessModal(true);
+    } catch (err) {
       setText("Something went worng");
       setFailModal(true);
+    } finally {
+      setCheckingIn(false);
     }
+  };
+
+  const handleSuccessModalClose = () => {
+    setSuccessModal(false);
+    setTimeout(() => {
+      scannerInputRef.current?.focus?.();
+    }, 100);
   };
 
   return (
@@ -208,6 +276,10 @@ export default function CheckInScreen() {
           setManualInput,
           handleManualSearch,
           fetchTicket,
+          checkingIn,
+          scannerInputRef,
+          recentCheckIn,
+          setRecentCheckIn,
         }}
       >
         <StatusBar barStyle="dark-content" backgroundColor="#fff" />
@@ -407,7 +479,7 @@ export default function CheckInScreen() {
             success={successModal}
             text={text}
             header={"Success"}
-            ModalCall={() => setSuccessModal(false)}
+            ModalCall={handleSuccessModalClose}
             status={true}
           />
         </ScrollView>

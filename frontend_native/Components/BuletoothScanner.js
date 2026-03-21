@@ -7,7 +7,8 @@ import { ScanContext } from "../Configs/AuthContext";
 const DEBOUNCE_DELAY = 1500; // 1.5s after last keystroke — bluetooth scanners type fast
 
 export default function BluetoothScanner() {
-  const { activeTab, fetchTicket, loading } = useContext(ScanContext);
+  const { activeTab, fetchTicket, loading, scannerInputRef } =
+    useContext(ScanContext);
   const [inputValue, setInputValue] = useState("");
   const [waiting, setWaiting] = useState(false);
   const debounceTimer = useRef(null);
@@ -68,6 +69,7 @@ export default function BluetoothScanner() {
               style={tw`mr-3`}
             />
             <TextInput
+              ref={scannerInputRef}
               placeholder="Waiting for scan..."
               placeholderTextColor="#9CA3AF"
               value={inputValue}

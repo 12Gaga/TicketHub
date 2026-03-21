@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
+import { useContext } from "react";
 import { Picker } from "@react-native-picker/picker";
 import { View, Text, ScrollView, ActivityIndicator } from "react-native";
 import tw from "twrnc";
 import { Ionicons } from "@expo/vector-icons";
 import globalApi from "../Configs/globalApi";
 import PopUpAlert from "./PopUpAlert";
+import { ScanContext } from "../Configs/AuthContext";
 
 function formatDateTime(isoString) {
   if (!isoString) return { time: "—", date: "—" };
@@ -22,14 +24,34 @@ function formatDateTime(isoString) {
 }
 
 export default function CheckInAudience() {
+  const { recentCheckIn, setRecentCheckIn } = useContext(ScanContext);
   const [events, setEvents] = useState([]);
   const [checkInAudience, setCheckInAudience] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [loading, setLoading] = useState(false);
   const [failModal, setFailModal] = useState(false);
 
+  useEffect(() => {
+    if (!recentCheckIn?.event?.documentId) return;
+    if (selectedEvent !== recentCheckIn.event.documentId) return;
+
+    setCheckInAudience((current) => {
+      const next = [
+        recentCheckIn,
+        ...(current ?? []).filter(
+          (item) =>
+            item.Name !== recentCheckIn.Name ||
+            item.DateTime !== recentCheckIn.DateTime,
+        ),
+      ];
+      return next;
+    });
+    setRecentCheckIn(null);
+  }, [recentCheckIn, selectedEvent]);
+
   const changeEvent = async (eventId) => {
     setSelectedEvent(eventId);
+    setRecentCheckIn(null);
     if (!eventId) {
       setCheckInAudience([]);
       return;
@@ -140,7 +162,7 @@ export default function CheckInAudience() {
                         {item.Name ?? "—"}
                       </Text>
                       <Text style={tw`text-xs text-gray-400`} numberOfLines={1}>
-                        {item.Event?.Name ?? "—"}
+                        {item.event?.Name ?? item.Event?.Name ?? "—"}
                       </Text>
                     </View>
 

@@ -16,6 +16,7 @@ export default function ScanTicketDetails() {
     loading,
     activeTab,
     result,
+    checkingIn,
     fadeAnim,
     handleReset,
     handleCheckIn,
@@ -103,23 +104,30 @@ export default function ScanTicketDetails() {
               {!result.ticket[0].CheckIn_Status && (
                 <TouchableOpacity
                   onPress={handleCheckIn}
+                  disabled={checkingIn}
                   style={tw`mt-4 rounded-xl overflow-hidden`}
                 >
                   <LinearGradient
                     colors={["#4F46E5", "#7C3AED"]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
-                    style={tw`py-4 flex-row items-center justify-center`}
+                    style={tw`py-4 flex-row items-center justify-center ${checkingIn ? "opacity-70" : ""}`}
                   >
-                    <Ionicons
-                      name="checkmark-done-outline"
-                      size={18}
-                      color="#fff"
-                      style={tw`mr-2`}
-                    />
-                    <Text style={tw`text-white font-bold text-sm`}>
-                      Mark as Checked In
-                    </Text>
+                    {checkingIn ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <>
+                        <Ionicons
+                          name="checkmark-done-outline"
+                          size={18}
+                          color="#fff"
+                          style={tw`mr-2`}
+                        />
+                        <Text style={tw`text-white font-bold text-sm`}>
+                          Mark as Checked In
+                        </Text>
+                      </>
+                    )}
                   </LinearGradient>
                 </TouchableOpacity>
               )}
