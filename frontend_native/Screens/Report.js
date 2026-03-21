@@ -41,6 +41,10 @@ function formatDate(dateStr) {
   });
 }
 
+function getAgentName(ticket) {
+  return ticket?.Agent ?? ticket?.agent?.Name ?? "";
+}
+
 function exportToCSV(tickets) {
   const headers = [
     "No",
@@ -62,7 +66,7 @@ function exportToCSV(tickets) {
     t.Phone ?? "",
     t.SeatNo ?? "",
     t.Payment ?? "",
-    t.Agent ?? "",
+    getAgentName(t),
     t.CheckIn_Status ? "Checked In" : "Not Checked In",
     t.Note ?? "",
     formatDate(t.createdAt),
@@ -116,7 +120,7 @@ function SummaryCard({ total, checkedIn, notCheckedIn }) {
           Checked In
         </Text>
       </View>
-      <View
+      {/* <View
         style={[
           tw`flex-1 rounded-2xl p-4 items-center`,
           { backgroundColor: "#FEE2E2" },
@@ -124,7 +128,7 @@ function SummaryCard({ total, checkedIn, notCheckedIn }) {
       >
         <Text style={tw`text-2xl font-bold text-red-500`}>{notCheckedIn}</Text>
         <Text style={tw`text-xs text-red-300 font-medium mt-1`}>Not In</Text>
-      </View>
+      </View> */}
     </View>
   );
 }

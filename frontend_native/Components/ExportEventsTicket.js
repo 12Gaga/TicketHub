@@ -1,9 +1,26 @@
 import { Picker } from "@react-native-picker/picker";
-import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ActivityIndicator,
+  ScrollView,
+} from "react-native";
 import tw from "twrnc";
 import { Ionicons } from "@expo/vector-icons";
 import { useContext } from "react";
 import { ExportContext } from "../Configs/AuthContext";
+
+function formatDate(dateStr) {
+  if (!dateStr) return "—";
+  const d = new Date(dateStr);
+  return d.toLocaleDateString("en-US", {
+    weekday: "short",
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
 
 export default function ExportEventsTicket() {
   const {
@@ -26,6 +43,108 @@ export default function ExportEventsTicket() {
     exporting,
     StatusBadge,
   } = useContext(ExportContext);
+
+  const tableColumns = [
+    {
+      key: "no",
+      label: "No",
+      width: 60,
+      lines: 1,
+      textStyle: tw`text-center`,
+      getValue: (_, index) => index + 1,
+    },
+    {
+      key: "ticketId",
+      label: "Ticket ID",
+      width: 120,
+      lines: 1,
+      getValue: (ticket) => ticket.Ticket_Id ?? "—",
+    },
+    {
+      key: "name",
+      label: "Name",
+      width: 150,
+      lines: 1,
+      getValue: (ticket) => ticket.Name ?? "—",
+    },
+    {
+      key: "email",
+      label: "Email",
+      width: 220,
+      lines: 1,
+      getValue: (ticket) => ticket.Email ?? "—",
+    },
+    {
+      key: "phone",
+      label: "Phone",
+      width: 140,
+      lines: 1,
+      getValue: (ticket) => ticket.Phone ?? "—",
+    },
+    {
+      key: "event",
+      label: "Event",
+      width: 180,
+      lines: 2,
+      getValue: (ticket) => ticket.event?.Name ?? "—",
+    },
+    {
+      key: "ticketType",
+      label: "Ticket Type",
+      width: 150,
+      lines: 2,
+      getValue: (ticket) => ticket.ticket?.Name ?? "—",
+    },
+    {
+      key: "seatNo",
+      label: "Seat No",
+      width: 90,
+      lines: 1,
+      textStyle: tw`text-center`,
+      getValue: (ticket) => ticket.SeatNo ?? "—",
+    },
+    {
+      key: "payment",
+      label: "Payment",
+      width: 120,
+      lines: 1,
+      textStyle: tw`text-center`,
+      getValue: (ticket) => ticket.Payment ?? "—",
+    },
+    {
+      key: "agent",
+      label: "Agent",
+      width: 150,
+      lines: 1,
+      getValue: (ticket) => ticket.Agent ?? ticket.agent?.Name ?? "—",
+    },
+    {
+      key: "checkIn",
+      label: "Check-In",
+      width: 110,
+      render: (ticket) => <StatusBadge checked={ticket.CheckIn_Status} />,
+    },
+    {
+      key: "note",
+      label: "Note",
+      width: 220,
+      lines: 2,
+      getValue: (ticket) => ticket.Note ?? "—",
+    },
+    {
+      key: "bookedAt",
+      label: "Booked At",
+      width: 150,
+      lines: 2,
+      getValue: (ticket) => formatDate(ticket.createdAt),
+    },
+  ];
+
+  const tableMinWidth = tableColumns.reduce(
+    (total, column) => total + column.width,
+    0,
+  );
+  
   return (
     <View>
       {/* ── Page Title ── */}
@@ -199,99 +318,97 @@ export default function ExportEventsTicket() {
               { elevation: 2 },
             ]}
           >
-            {/* Table Head */}
-            <View
-              style={[tw`flex-row px-4 py-3`, { backgroundColor: "#4F46E5" }]}
+            <Text style={tw`text-xs text-gray-400 px-4 pt-3`}>
+              Swipe left or right to view all ticket columns
+            </Text>
+            <ScrollView
+              horizontal
+              nestedScrollEnabled
+              showsHorizontalScrollIndicator
+              contentContainerStyle={{ minWidth: tableMinWidth }}
             >
-              <Text style={tw`text-white text-xs font-bold w-6`}>#</Text>
-              <Text style={tw`text-white text-xs font-bold flex-1`}>Name</Text>
-              <Text style={tw`text-white text-xs font-bold w-16 text-center`}>
-                Seat
-              </Text>
-              <Text style={tw`text-white text-xs font-bold w-20 text-center`}>
-                Payment
-              </Text>
-              <Text style={tw`text-white text-xs font-bold w-20 text-center`}>
-                Status
-              </Text>
-            </View>
-
-            {/* Rows */}
-            {(bookedTickets ?? []).map((ticket, index) => (
-              <View key={ticket.documentId}>
-                {/* Main Row */}
+              <View>
                 <View
                   style={[
-                    tw`flex-row items-center px-4 py-3`,
-                    {
-                      backgroundColor: index % 2 === 0 ? "#FFFFFF" : "#F9FAFB",
-                    },
+                    tw`flex-row`,
+                    { backgroundColor: "#4F46E5", minWidth: tableMinWidth },
                   ]}
                 >
-                  <Text style={tw`text-xs text-gray-400 w-6`}>{index + 1}</Text>
-                  <View style={tw`flex-1`}>
-                    <Text
-                      style={tw`text-sm font-semibold text-gray-800`}
-                      numberOfLines={1}
+                  {tableColumns.map((column, columnIndex) => (
+                    <View
+                      key={column.key}
+                      style={[
+                        tw`px-3 py-3 justify-center`,
+                        {
+                          width: column.width,
+                          borderRightWidth:
+                            columnIndex === tableColumns.length - 1 ? 0 : 1,
+                          borderRightColor: "rgba(255,255,255,0.2)",
+                        },
+                      ]}
                     >
-                      {ticket.Name ?? "—"}
-                    </Text>
-                    <Text style={tw`text-xs text-gray-400`} numberOfLines={1}>
-                      {ticket.Phone ?? "—"}
-                    </Text>
-                  </View>
-                  <Text style={tw`text-xs text-gray-600 w-16 text-center`}>
-                    {ticket.SeatNo ?? "—"}
-                  </Text>
-                  <Text
-                    style={tw`text-xs text-gray-600 w-20 text-center`}
-                    numberOfLines={1}
-                  >
-                    {ticket.Payment ?? "—"}
-                  </Text>
-                  <View style={tw`w-20 items-center`}>
-                    <StatusBadge checked={ticket.CheckIn_Status} />
-                  </View>
-                </View>
-
-                {/* Detail Sub-Row */}
-                <View
-                  style={[
-                    tw`px-4 pb-3 flex-row flex-wrap gap-3`,
-                    {
-                      backgroundColor: index % 2 === 0 ? "#FFFFFF" : "#F9FAFB",
-                      borderBottomWidth: 1,
-                      borderBottomColor: "#F3F4F6",
-                    },
-                  ]}
-                >
-                  <View style={tw`flex-row items-center`}>
-                    <Ionicons name="mail-outline" size={11} color="#9CA3AF" />
-                    <Text style={tw`text-xs text-gray-400 ml-1`}>
-                      {ticket.Email ?? "—"}
-                    </Text>
-                  </View>
-                  <View style={tw`flex-row items-center`}>
-                    <Ionicons name="person-outline" size={11} color="#9CA3AF" />
-                    <Text style={tw`text-xs text-gray-400 ml-1`}>
-                      Agent: {ticket.Agent ?? "—"}
-                    </Text>
-                  </View>
-                  {ticket.Note ? (
-                    <View style={tw`flex-row items-center`}>
-                      <Ionicons
-                        name="document-text-outline"
-                        size={11}
-                        color="#9CA3AF"
-                      />
-                      <Text style={tw`text-xs text-gray-400 ml-1`}>
-                        {ticket.Note}
+                      <Text
+                        style={[
+                          tw`text-white text-xs font-bold`,
+                          column.textStyle,
+                        ]}
+                      >
+                        {column.label}
                       </Text>
                     </View>
-                  ) : null}
+                  ))}
                 </View>
+
+                {(bookedTickets ?? []).map((ticket, index) => (
+                  <View
+                    key={ticket.documentId}
+                    style={[
+                      tw`flex-row`,
+                      {
+                        minWidth: tableMinWidth,
+                        backgroundColor:
+                          index % 2 === 0 ? "#FFFFFF" : "#F9FAFB",
+                        borderTopWidth: 1,
+                        borderTopColor: "#F3F4F6",
+                      },
+                    ]}
+                  >
+                    {tableColumns.map((column, columnIndex) => (
+                      <View
+                        key={`${ticket.documentId}-${column.key}`}
+                        style={[
+                          tw`px-3 py-3 justify-center`,
+                          {
+                            width: column.width,
+                            minHeight: 60,
+                            borderRightWidth:
+                              columnIndex === tableColumns.length - 1 ? 0 : 1,
+                            borderRightColor: "#F3F4F6",
+                          },
+                        ]}
+                      >
+                        {column.render ? (
+                          <View style={tw`items-center`}>
+                            {column.render(ticket, index)}
+                          </View>
+                        ) : (
+                          <Text
+                            style={[
+                              tw`text-xs text-gray-700`,
+                              column.textStyle,
+                              column.key === "name" && tw`font-semibold text-gray-800`,
+                            ]}
+                            numberOfLines={column.lines ?? 1}
+                          >
+                            {column.getValue(ticket, index)}
+                          </Text>
+                        )}
+                      </View>
+                    ))}
+                  </View>
+                ))}
               </View>
-            ))}
+            </ScrollView>
           </View>
 
           {/* Export CSV Button */}
