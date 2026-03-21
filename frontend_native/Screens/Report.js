@@ -252,7 +252,13 @@ export default function ReportScreen() {
   const handleSearch = async () => {
     setLoading(true);
     try {
-      const resp = await globalApi.getBookedTicket(data.ticket, data.event);
+      let resp;
+      if (data.ticket === "123") {
+        // All tickets for selected event
+        resp = await globalApi.getBookedTicketByEvent(data.event);
+      } else {
+        resp = await globalApi.getBookedTicket(data.ticket, data.event);
+      }
       if (resp.ok) {
         setBookedTickets(resp.data.data);
       }
@@ -273,7 +279,11 @@ export default function ReportScreen() {
     try {
       const csv = exportToCSV(bookedTickets);
       const eventPart = sanitizeFileName(selectedEventName) || "event";
-      const ticketPart = sanitizeFileName(selectedTicketName) || "ticket";
+      // if All selected, label as "all_tickets"
+      const ticketPart =
+        data.ticket === "123"
+          ? "all_tickets"
+          : sanitizeFileName(selectedTicketName) || "ticket";
       const fileBaseName = `report_${eventPart}_${ticketPart}_${Date.now()}`;
       const fileName = `${fileBaseName}.csv`;
 
@@ -420,7 +430,7 @@ export default function ReportScreen() {
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
+          {/* <TouchableOpacity
             style={tw`bg-indigo-600 rounded-xl py-4 flex-row items-center justify-center mb-4`}
             onPress={handleExportAllCSV}
             disabled={exportingAll}
@@ -435,7 +445,8 @@ export default function ReportScreen() {
                 </Text>
               </>
             )}
-          </TouchableOpacity>
+          </TouchableOpacity> */}
+
           <RegenerateBarcode />
 
           <ExportEventsTicket />

@@ -54,15 +54,15 @@ const changeEventStatus = (documentId, status = false) =>
   });
 const getBookedTicket = (ticketID, eventID) =>
   api.get(
-    `/booked-tickets?filters[ticket][documentId][$eq]=${ticketID}&filters[event][documentId][$eq]=${eventID}&populate=*&pagination[start]=0&pagination[limit]=10000`,
+    `/booked-tickets?filters[ticket][documentId][$eq]=${ticketID}&filters[event][documentId][$eq]=${eventID}&populate=*&pagination[start]=0&pagination[limit]=20000`,
   );
 const getAllBookedTickets = () =>
   api.get(
-    "/booked-tickets?populate=*&pagination[start]=0&pagination[limit]=10000",
+    "/booked-tickets?populate=*&pagination[start]=0&pagination[limit]=20000",
   );
 const getBookedTicketByEvent = (eventID) =>
   api.get(
-    `/booked-tickets?filters[event][documentId][$eq]=${eventID}&populate=*&pagination[start]=0&pagination[limit]=10000`,
+    `/booked-tickets?filters[event][documentId][$eq]=${eventID}&populate=*&pagination[start]=0&pagination[limit]=20000`,
   );
 const getTicketLimit = (eventID) =>
   api.get(

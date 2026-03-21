@@ -43,6 +43,22 @@ export default function ExportEventsTicket() {
           { elevation: 2 },
         ]}
       >
+        {/* Export Limit Note */}
+        <View
+          style={tw`flex-row items-start bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3 mb-6`}
+        >
+          <Ionicons
+            name="information-circle-outline"
+            size={16}
+            color="#D97706"
+            style={tw`mt-0.5 mr-2`}
+          />
+          <Text style={tw`text-xs text-yellow-700 flex-1 leading-5`}>
+            Note: This export supports up to 20,000 tickets at a time. If your
+            total sold tickets exceed 20,000, please contact your administrator
+            to export in batches.
+          </Text>
+        </View>
         {/* Event Picker */}
         <Text style={tw`text-sm font-semibold text-gray-700 mb-1`}>
           Event <Text style={tw`text-red-500`}>*</Text>
@@ -109,6 +125,7 @@ export default function ExportEventsTicket() {
                 value={null}
                 color="#9CA3AF"
               />
+              <Picker.Item label="All" value="123" color="#111827" />
               {(avariableTicketType ?? []).map((ticket) => (
                 <Picker.Item
                   key={ticket.documentId}
