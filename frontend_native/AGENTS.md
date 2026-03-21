@@ -279,9 +279,14 @@ and Expo plugins for:
 
 - Use Context7 MCP for documentation lookup.
 
+## Subagent lifecycle
+
+- Subagents must NOT auto-close after returning results
+- Default state: persistent
+- Only close when explicitly instructed by user
+
 ## Recommended Next Refactors
 
-- remove raw password persistence from auth storage
 - centralize ticket availability checks
 - add a proper CSV parser/serializer
 - normalize backend relation field names
