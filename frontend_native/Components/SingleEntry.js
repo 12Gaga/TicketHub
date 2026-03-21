@@ -42,6 +42,82 @@ export default function SingleEntry() {
                 Enter attendee details to generate a single ticket
               </Text>
 
+                            {/* Online / Offline Toggle */}
+              <View style={tw`mb-4`}>
+                <Text style={tw`text-sm font-semibold text-gray-900 mb-2`}>
+                  Sales Channel
+                </Text>
+                <View style={tw`flex-row`}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setBuyState(1);
+                      setData({ ...data, Ticket_Status: true });
+                    }}
+                    style={tw`flex-1 flex-row items-center justify-center py-3 rounded-l-xl border border-gray-200 ${
+                      buyState === 1
+                        ? "bg-indigo-600 border-indigo-600"
+                        : "bg-white"
+                    }`}
+                  >
+                    <Ionicons
+                      name="storefront-outline"
+                      size={15}
+                      color={buyState === 1 ? "white" : "#6B7280"}
+                    />
+                    <Text
+                      style={tw`ml-1 text-sm font-semibold ${
+                        buyState === 1 ? "text-white" : "text-gray-500"
+                      }`}
+                    >
+                      Offline
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => {
+                      setBuyState(2);
+                      setData({ ...data, Ticket_Status: false });
+                    }}
+                    style={tw`flex-1 flex-row items-center justify-center py-3 rounded-r-xl border border-gray-200 ${
+                      buyState === 2
+                        ? "bg-indigo-600 border-indigo-600"
+                        : "bg-white"
+                    }`}
+                  >
+                    <Ionicons
+                      name="globe-outline"
+                      size={15}
+                      color={buyState === 2 ? "white" : "#6B7280"}
+                    />
+                    <Text
+                      style={tw`ml-1 text-sm font-semibold ${
+                        buyState === 2 ? "text-white" : "text-gray-500"
+                      }`}
+                    >
+                      Online
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Ticket_Id for offline */}
+              {data.Ticket_Status && (
+                <View style={tw`mb-4`}>
+                  <Text style={tw`text-sm font-semibold text-gray-900 mb-1`}>
+                    Ticket Id <Text style={tw`text-red-500`}>*</Text>
+                  </Text>
+                  <TextInput
+                    placeholder="Ticket - 1"
+                    value={data.Ticket_Id}
+                    style={tw`border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700`}
+                    placeholderTextColor="#9CA3AF"
+                    onChangeText={(ticketId) =>
+                      setData({ ...data, Ticket_Id: ticketId })
+                    }
+                  />
+                </View>
+              )}
+
               <View style={tw`mb-4`}>
                 <Text style={tw`text-sm font-semibold text-gray-900 mb-1`}>
                   Name <Text style={tw`text-red-500`}>*</Text>
@@ -122,80 +198,6 @@ export default function SingleEntry() {
                 </View>
               </View>
 
-              {/* Online / Offline Toggle */}
-              <View style={tw`mb-4`}>
-                <Text style={tw`text-sm font-semibold text-gray-900 mb-2`}>
-                  Sales Channel
-                </Text>
-                <View style={tw`flex-row`}>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setBuyState(1);
-                      setData({ ...data, Ticket_Status: true });
-                    }}
-                    style={tw`flex-1 flex-row items-center justify-center py-3 rounded-l-xl border border-gray-200 ${
-                      buyState === 1
-                        ? "bg-indigo-600 border-indigo-600"
-                        : "bg-white"
-                    }`}
-                  >
-                    <Ionicons
-                      name="storefront-outline"
-                      size={15}
-                      color={buyState === 1 ? "white" : "#6B7280"}
-                    />
-                    <Text
-                      style={tw`ml-1 text-sm font-semibold ${
-                        buyState === 1 ? "text-white" : "text-gray-500"
-                      }`}
-                    >
-                      Offline
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    onPress={() => {
-                      setBuyState(2);
-                      setData({ ...data, Ticket_Status: false });
-                    }}
-                    style={tw`flex-1 flex-row items-center justify-center py-3 rounded-r-xl border border-gray-200 ${
-                      buyState === 2
-                        ? "bg-indigo-600 border-indigo-600"
-                        : "bg-white"
-                    }`}
-                  >
-                    <Ionicons
-                      name="globe-outline"
-                      size={15}
-                      color={buyState === 2 ? "white" : "#6B7280"}
-                    />
-                    <Text
-                      style={tw`ml-1 text-sm font-semibold ${
-                        buyState === 2 ? "text-white" : "text-gray-500"
-                      }`}
-                    >
-                      Online
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-              {/* Ticket_Id for offline */}
-              {data.Ticket_Status && (
-                <View style={tw`mb-4`}>
-                  <Text style={tw`text-sm font-semibold text-gray-900 mb-1`}>
-                    Ticket Id <Text style={tw`text-red-500`}>*</Text>
-                  </Text>
-                  <TextInput
-                    placeholder="Ticket - 1"
-                    value={data.Ticket_Id}
-                    style={tw`border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700`}
-                    placeholderTextColor="#9CA3AF"
-                    onChangeText={(ticketId) =>
-                      setData({ ...data, Ticket_Id: ticketId })
-                    }
-                  />
-                </View>
-              )}
               {/* Payment Method */}
               <View style={tw`mb-4`}>
                 <Text style={tw`text-sm font-semibold text-gray-900 mb-1`}>
