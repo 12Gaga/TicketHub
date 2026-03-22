@@ -92,6 +92,11 @@ const searchBookedTicketByName = (name) =>
   api.get(
     `/booked-tickets?filters[Name][$containsi]=${name}&populate[event][populate]=Image&populate=ticket`,
   );
+const searchBookedTicketByEventAndName = (eventID, name) =>
+  api.get(
+    `/booked-tickets?filters[event][documentId][$eq]=${encodeURIComponent(eventID)}&filters[Name][$containsi]=${encodeURIComponent(name)}&populate[event][populate]=Image&populate=ticket&sort[0]=createdAt:desc`,
+  );
+  
 export default {
   checkUser,
   getTicket,
@@ -115,4 +120,5 @@ export default {
   uploadFile,
   getAllBookedTickets,
   searchBookedTicketByName,
+  searchBookedTicketByEventAndName,
 };

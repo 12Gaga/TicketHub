@@ -1,3 +1,4 @@
+import { Picker } from "@react-native-picker/picker";
 import {
   View,
   Text,
@@ -10,8 +11,7 @@ import tw from "twrnc";
 import { Ionicons } from "@expo/vector-icons";
 import globalApi from "../Configs/globalApi";
 import { useNavigation } from "@react-navigation/native";
-import { useEffect, useState } from "react";
-import UserAuth from "../Configs/UserAuth";
+import { useEffect, useMemo, useState } from "react";
 import PopUpAlert from "../Components/PopUpAlert";
 
 function formatDate(dateStr) {
@@ -25,44 +25,128 @@ function formatDate(dateStr) {
   });
 }
 
+function sortEventsByName(events = []) {
+  return [...events].sort((left, right) =>
+    String(left?.Name ?? "").localeCompare(String(right?.Name ?? ""), "en", {
+      sensitivity: "base",
+    }),
+  );
+}
+
 export default function RegenerateBarcode() {
   const navigation = useNavigation();
   const [failModal, setFailModal] = useState(false);
   const [text, setText] = useState("");
-
+  
   // ── Barcode Search States ──
   const [showSearch, setShowSearch] = useState(false);
+  const [events, setEvents] = useState([]);
+  const [eventsLoading, setEventsLoading] = useState(false);
+  const [selectedEventId, setSelectedEventId] = useState(null);
   const [searchName, setSearchName] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [ticketModal, setTicketModal] = useState(false);
 
+  useEffect(() => {
+    const fetchEvents = async () => {
+      setEventsLoading(true);
+      try {
+        const liveResp = await globalApi.getEvents();
+
+        if (!liveResp.ok) {
+          throw new Error("Failed to fetch events");
+        }
+
+        setEvents(sortEventsByName(liveResp.data?.data ?? []));
+      } catch (error) {
+        setText("Failed fetching events");
+        setFailModal(true);
+        console.error(error);
+      } finally {
+        setEventsLoading(false);
+      }
+    };
+
+    fetchEvents();
+  }, []);
+
+  const selectedEvent = useMemo(
+    () => events.find((event) => event.documentId === selectedEventId) ?? null,
+    [events, selectedEventId],
+  );
+
+  const canSearch = !!(selectedEventId && searchName.trim());
+
+  const resetSearchState = () => {
+    setSearchName("");
+    setSearchResults([]);
+    setSearching(false);
+    setHasSearched(false);
+    setSelectedTicket(null);
+    setTicketModal(false);
+  };
+
+  const handleToggleSearch = () => {
+    setShowSearch((current) => {
+      const nextValue = !current;
+
+      if (!nextValue) {
+        setSelectedEventId(null);
+        resetSearchState();
+      }
+
+      return nextValue;
+    });
+  };
+
+  const handleSelectEvent = (eventId) => {
+    setSelectedEventId(eventId);
+    resetSearchState();
+  };
+
+  const handleChangeSearchName = (value) => {
+    setSearchName(value);
+    setSearchResults([]);
+    setHasSearched(false);
+    setSelectedTicket(null);
+    setTicketModal(false);
+  };
+
   const handleSearchByName = async () => {
-    if (!searchName.trim()) return;
+    if (!canSearch) return;
+
     setSearching(true);
+    setHasSearched(true);
+
     try {
-      const resp = await globalApi.searchBookedTicketByName(searchName.trim());
+      const resp = await globalApi.searchBookedTicketByEventAndName(
+        selectedEventId,
+        searchName.trim(),
+      );
+
       if (resp.ok) {
-        setSearchResults(resp.data.data);
+        setSearchResults(resp.data?.data ?? []);
+      } else {
+        throw new Error("Search request failed");
       }
     } catch (error) {
       setText("Failed fetching Data");
       setFailModal(true);
+      setSearchResults([]);
       console.error(error);
     } finally {
       setSearching(false);
     }
   };
+
   return (
     <View>
       <TouchableOpacity
         style={tw`border border-indigo-600 rounded-xl py-4 flex-row items-center justify-center mb-4`}
-        onPress={() => {
-          setShowSearch(!showSearch);
-          setSearchName("");
-          setSearchResults([]);
-        }}
+        onPress={handleToggleSearch}
       >
         <Ionicons name="barcode-outline" size={18} color="#4F46E5" />
         <Text style={tw`text-indigo-600 font-bold text-sm ml-2`}>
@@ -70,95 +154,174 @@ export default function RegenerateBarcode() {
         </Text>
       </TouchableOpacity>
 
-      {/* ── Search Box + Results ── */}
       {showSearch && (
         <View style={tw`mb-4`}>
-          {/* Search Input */}
-          <View style={tw`flex-row items-center mb-3`}>
+          <View
+            style={tw`bg-white rounded-2xl p-4 mb-4 border border-gray-100`}
+          >
+            <Text style={tw`text-sm font-semibold text-gray-700 mb-1`}>
+              Event <Text style={tw`text-red-500`}>*</Text>
+            </Text>
+            <View
+              style={tw`border border-gray-200 rounded-xl bg-gray-50 overflow-hidden flex-row items-center px-3 mb-4`}
+            >
+              <Ionicons
+                name="calendar-outline"
+                size={18}
+                color="#6366F1"
+                style={tw`mr-2`}
+              />
+              {eventsLoading ? (
+                <View style={tw`flex-1 py-4`}>
+                  <ActivityIndicator size="small" color="#4F46E5" />
+                </View>
+              ) : (
+                <Picker
+                  selectedValue={selectedEventId}
+                  onValueChange={handleSelectEvent}
+                  style={tw`flex-1 h-13 text-sm text-gray-700`}
+                >
+                  <Picker.Item
+                    label="Select an event"
+                    value={null}
+                    color="#9CA3AF"
+                  />
+                  {events.map((event) => (
+                    <Picker.Item
+                      key={event.documentId}
+                      label={event.Name}
+                      value={event.documentId}
+                      color="#111827"
+                    />
+                  ))}
+                </Picker>
+              )}
+            </View>
+
+            <Text style={tw`text-sm font-semibold text-gray-700 mb-1`}>
+              Customer Name <Text style={tw`text-red-500`}>*</Text>
+            </Text>
             <TextInput
               value={searchName}
-              onChangeText={setSearchName}
+              onChangeText={handleChangeSearchName}
               placeholder="Type customer name..."
-              style={tw`flex-1 border border-indigo-300 rounded-xl px-4 py-3 text-sm text-gray-700 bg-white mr-2`}
+              editable={!!selectedEventId}
+              style={[
+                tw`border rounded-xl px-4 py-3 text-sm bg-white`,
+                {
+                  borderColor: selectedEventId ? "#A5B4FC" : "#E5E7EB",
+                  color: selectedEventId ? "#374151" : "#9CA3AF",
+                },
+              ]}
             />
             <TouchableOpacity
-              style={tw`bg-indigo-600 px-4 py-3 rounded-xl`}
+              style={[
+                tw`mt-3 px-4 py-3 rounded-xl items-center`,
+                { backgroundColor: canSearch ? "#4F46E5" : "#E5E7EB" },
+              ]}
               onPress={handleSearchByName}
-              disabled={searching}
+              disabled={!canSearch || searching}
             >
               {searching ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
-                <Text style={tw`text-white font-bold text-sm`}>Search</Text>
+                <Text
+                  style={[
+                    tw`font-bold text-sm`,
+                    { color: canSearch ? "#FFFFFF" : "#9CA3AF" },
+                  ]}
+                >
+                  Search
+                </Text>
               )}
             </TouchableOpacity>
           </View>
 
-          {/* Results Table */}
           {searchResults.length > 0 && (
-            <View
-              style={tw`bg-white rounded-xl overflow-hidden border border-gray-100`}
-            >
-              {/* Table Header */}
-              <View style={tw`flex-row bg-indigo-600 px-3 py-2`}>
-                <Text style={tw`text-white font-bold text-xs w-8`}>No</Text>
-                <Text style={tw`text-white font-bold text-xs flex-1`}>
-                  Name
+            <>
+              <View style={tw`flex-row items-center justify-between mb-3`}>
+                <Text style={tw`text-base font-bold text-gray-900`}>
+                  Results{" "}
+                  <Text style={tw`text-indigo-500`}>({searchResults.length})</Text>
                 </Text>
-                <Text style={tw`text-white font-bold text-xs flex-1`}>
-                  Event
-                </Text>
-                <Text style={tw`text-white font-bold text-xs flex-1`}>
-                  Ticket
+                <Text style={tw`text-xs text-gray-400`}>
+                  {selectedEvent?.Name ?? "—"}
                 </Text>
               </View>
 
-              {/* Table Rows */}
-              {searchResults.map((ticket, index) => (
-                <TouchableOpacity
-                  key={ticket.documentId}
-                  onPress={() => {
-                    setSelectedTicket(ticket);
-                    setTicketModal(true);
-                  }}
-                  style={[
-                    tw`flex-row px-3 py-3 items-center`,
-                    { backgroundColor: index % 2 === 0 ? "#fff" : "#F5F3FF" },
-                  ]}
-                >
-                  <Text style={tw`text-xs text-gray-500 w-8`}>{index + 1}</Text>
-                  <Text
-                    style={tw`text-xs text-gray-800 font-semibold flex-1`}
-                    numberOfLines={1}
+              <View
+                style={[
+                  tw`bg-white rounded-2xl overflow-hidden border border-gray-100 mb-4`,
+                  { elevation: 2 },
+                ]}
+              >
+                <View style={[tw`flex-row`, { backgroundColor: "#4F46E5" }]}>
+                  <View style={[tw`px-3 py-3 justify-center`, { width: 60 }]}>
+                    <Text style={tw`text-white text-xs font-bold`}>No</Text>
+                  </View>
+                  <View style={[tw`px-3 py-3 justify-center`, { flex: 1 }]}>
+                    <Text style={tw`text-white text-xs font-bold`}>Name</Text>
+                  </View>
+                  <View style={[tw`px-3 py-3 justify-center`, { width: 150 }]}>
+                    <Text style={tw`text-white text-xs font-bold`}>
+                      Booked At
+                    </Text>
+                  </View>
+                </View>
+
+                {searchResults.map((ticket, index) => (
+                  <TouchableOpacity
+                    key={ticket.documentId}
+                    onPress={() => {
+                      setSelectedTicket(ticket);
+                      setTicketModal(true);
+                    }}
+                    style={[
+                      tw`flex-row`,
+                      {
+                        backgroundColor:
+                          index % 2 === 0 ? "#FFFFFF" : "#F9FAFB",
+                        borderTopWidth: 1,
+                        borderTopColor: "#F3F4F6",
+                      },
+                    ]}
                   >
-                    {ticket.Name}
-                  </Text>
-                  <Text
-                    style={tw`text-xs text-gray-600 flex-1`}
-                    numberOfLines={1}
-                  >
-                    {ticket.event?.Name ?? "—"}
-                  </Text>
-                  <Text
-                    style={tw`text-xs text-indigo-600 font-bold flex-1`}
-                    numberOfLines={1}
-                  >
-                    {ticket.ticket?.Name ?? "—"}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+                    <View style={[tw`px-3 py-4 justify-center`, { width: 60 }]}>
+                      <Text style={tw`text-xs text-gray-500`}>{index + 1}</Text>
+                    </View>
+                    <View style={[tw`px-3 py-4 justify-center`, { flex: 1 }]}>
+                      <Text
+                        style={tw`text-xs text-gray-800 font-semibold`}
+                        numberOfLines={1}
+                      >
+                        {ticket.Name ?? "—"}
+                      </Text>
+                    </View>
+                    <View
+                      style={[tw`px-3 py-4 justify-center`, { width: 150 }]}
+                    >
+                      <Text style={tw`text-xs text-gray-600`} numberOfLines={2}>
+                        {formatDate(ticket.createdAt)}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </>
           )}
 
-          {/* No Results */}
-          {!searching && searchName && searchResults.length === 0 && (
-            <View style={tw`items-center py-6`}>
-              <Ionicons name="search-outline" size={32} color="#A5B4FC" />
-              <Text style={tw`text-gray-400 text-sm mt-2`}>
-                No tickets found
-              </Text>
-            </View>
-          )}
+          {!searching &&
+            hasSearched &&
+            selectedEventId &&
+            searchName.trim() &&
+            searchResults.length === 0 && (
+              <View style={tw`items-center py-6`}>
+                <Ionicons name="search-outline" size={32} color="#A5B4FC" />
+                <Text style={tw`text-gray-400 text-sm mt-2`}>
+                  No tickets found for {selectedEvent?.Name ?? "this event"}
+                </Text>
+              </View>
+            )}
         </View>
       )}
 
@@ -170,7 +333,6 @@ export default function RegenerateBarcode() {
         status={false}
       />
 
-      {/* ── Ticket Detail Modal ── */}
       <Modal
         visible={ticketModal}
         animationType="slide"
@@ -179,7 +341,6 @@ export default function RegenerateBarcode() {
       >
         <View style={tw`flex-1 justify-end bg-black bg-opacity-40`}>
           <View style={tw`bg-white rounded-t-3xl px-6 pt-6 pb-10`}>
-            {/* Handle */}
             <View
               style={tw`w-12 h-1 bg-gray-200 rounded-full self-center mb-5`}
             />
@@ -192,7 +353,6 @@ export default function RegenerateBarcode() {
 
             {selectedTicket && (
               <View>
-                {/* Detail Rows */}
                 {[
                   { label: "NAME", value: selectedTicket.Name },
                   { label: "EVENT", value: selectedTicket.event?.Name },
@@ -234,7 +394,6 @@ export default function RegenerateBarcode() {
 
                 <View style={tw`h-px bg-gray-100 my-4`} />
 
-                {/* Generate Barcode Button */}
                 <TouchableOpacity
                   style={tw`bg-indigo-600 rounded-xl py-4 flex-row items-center justify-center mb-3`}
                   onPress={() => {
@@ -258,7 +417,6 @@ export default function RegenerateBarcode() {
                   </Text>
                 </TouchableOpacity>
 
-                {/* Close Button */}
                 <TouchableOpacity
                   style={tw`border border-indigo-600 rounded-xl py-4 items-center`}
                   onPress={() => setTicketModal(false)}
