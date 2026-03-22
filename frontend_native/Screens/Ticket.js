@@ -196,6 +196,7 @@ export default function OfflineTicketGeneration() {
       !data.event ||
       !data.ticket ||
       !data.Name ||
+      !data.agent ||
       !user ||
       (data.Ticket_Status && !data.Ticket_Id)
     ) {
@@ -222,7 +223,9 @@ export default function OfflineTicketGeneration() {
           return;
         }
       } catch (validationError) {
-        setFailedText(validationError?.message || "Could not validate Ticket Id.");
+        setFailedText(
+          validationError?.message || "Could not validate Ticket Id.",
+        );
         setFailModal(true);
         return;
       }
@@ -451,7 +454,7 @@ export default function OfflineTicketGeneration() {
                   activeTab === "bulk" ? "text-white" : "text-gray-500"
                 }`}
               >
-                Bulk Upload
+                Import Tickets
               </Text>
             </TouchableOpacity>
           </View>

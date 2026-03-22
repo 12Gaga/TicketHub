@@ -269,7 +269,7 @@ and Expo plugins for:
 - Watch for inconsistent relation naming in the current codebase, especially
   `event` vs `Event` and `agent` vs `Agent`.
 - If touching CSV import/export, treat quoting and commas as a real bug surface.
-- If touching bulk upload, preserve the `### TicketType ###` section contract
+- If touching 'import tickets', preserve the `### TicketType ###` section contract
   unless the importer and template are both changed together.
 - If touching ticket limits, re-check both single-entry and bulk-import flows.
 - Keep in mind that `Pages/GenerateQRSharing.js` is the active `generateQR`
