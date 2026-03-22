@@ -8,8 +8,10 @@ import {
 } from "react-native";
 import tw from "twrnc";
 import { Ionicons } from "@expo/vector-icons";
-import { useContext } from "react";
+import { useContext, useEffect, useState } from "react";
 import { ExportContext } from "../Configs/AuthContext";
+
+const PREVIEW_BATCH_SIZE = 100;
 
 function formatDate(dateStr) {
   if (!dateStr) return "—";
@@ -22,7 +24,13 @@ function formatDate(dateStr) {
   });
 }
 
+function getSortIcon(sortDirection, isActive) {
+  if (!isActive) return "swap-vertical-outline";
+  return sortDirection === "asc" ? "arrow-up-outline" : "arrow-down-outline";
+}
+
 export default function ExportEventsTicket() {
+  const [visibleCount, setVisibleCount] = useState(PREVIEW_BATCH_SIZE);
   const {
     data,
     changeEvent,
@@ -35,6 +43,9 @@ export default function ExportEventsTicket() {
     SummaryCard,
     loading,
     bookedTickets,
+    sortedBookedTickets,
+    sortConfig,
+    toggleSort,
     checkedInCount,
     notCheckedInCount,
     selectedEventName,
@@ -43,6 +54,10 @@ export default function ExportEventsTicket() {
     exporting,
     StatusBadge,
   } = useContext(ExportContext);
+
+  useEffect(() => {
+    setVisibleCount(PREVIEW_BATCH_SIZE);
+  }, [bookedTickets]);
 
   const tableColumns = [
     {
@@ -65,6 +80,7 @@ export default function ExportEventsTicket() {
       label: "Name",
       width: 150,
       lines: 1,
+      sortable: true,
       getValue: (ticket) => ticket.Name ?? "—",
     },
     {
@@ -116,6 +132,7 @@ export default function ExportEventsTicket() {
       label: "Agent",
       width: 150,
       lines: 1,
+      sortable: true,
       getValue: (ticket) => ticket.Agent ?? ticket.agent?.Name ?? "—",
     },
     {
@@ -136,6 +153,7 @@ export default function ExportEventsTicket() {
       label: "Booked At",
       width: 150,
       lines: 2,
+      sortable: true,
       getValue: (ticket) => formatDate(ticket.createdAt),
     },
   ];
@@ -144,7 +162,11 @@ export default function ExportEventsTicket() {
     (total, column) => total + column.width,
     0,
   );
-  
+  const previewTickets = sortedBookedTickets ?? [];
+  const visibleTickets = previewTickets.slice(0, visibleCount);
+  const remainingTickets = previewTickets.length - visibleTickets.length;
+  const hasMoreTickets = visibleTickets.length < previewTickets.length;
+
   return (
     <View>
       {/* ── Page Title ── */}
@@ -173,8 +195,8 @@ export default function ExportEventsTicket() {
             style={tw`mt-0.5 mr-2`}
           />
           <Text style={tw`text-xs text-yellow-700 flex-1 leading-5`}>
-            Note: This export supports up to 20,000 tickets at a time. If your
-            total sold tickets exceed 20,000, please contact your administrator
+            Note: This export supports up to 200,000 tickets at a time. If your
+            total sold tickets exceed 200,000, please contact your administrator
             to export in batches.
           </Text>
         </View>
@@ -306,9 +328,14 @@ export default function ExportEventsTicket() {
                 ({(bookedTickets ?? []).length})
               </Text>
             </Text>
-            <Text style={tw`text-xs text-gray-400`}>
-              {selectedEventName} · {selectedTicketName}
-            </Text>
+            <View style={tw`items-end`}>
+              <Text style={tw`text-xs text-gray-400`}>
+                {selectedEventName} · {selectedTicketName}
+              </Text>
+              <Text style={tw`text-xs text-gray-400 mt-1`}>
+                Showing {visibleTickets.length} of {(bookedTickets ?? []).length}
+              </Text>
+            </View>
           </View>
 
           {/* Table */}
@@ -347,19 +374,48 @@ export default function ExportEventsTicket() {
                         },
                       ]}
                     >
-                      <Text
-                        style={[
-                          tw`text-white text-xs font-bold`,
-                          column.textStyle,
-                        ]}
-                      >
-                        {column.label}
-                      </Text>
+                      {column.sortable ? (
+                        <TouchableOpacity
+                          activeOpacity={0.8}
+                          onPress={() => toggleSort(column.key)}
+                          style={tw`flex-row items-center justify-between`}
+                        >
+                          <Text
+                            style={[
+                              tw`text-white text-xs font-bold flex-1`,
+                              column.textStyle,
+                            ]}
+                          >
+                            {column.label}
+                          </Text>
+                          <Ionicons
+                            name={getSortIcon(
+                              sortConfig?.direction,
+                              sortConfig?.key === column.key,
+                            )}
+                            size={14}
+                            color={
+                              sortConfig?.key === column.key
+                                ? "#FFFFFF"
+                                : "rgba(255,255,255,0.7)"
+                            }
+                          />
+                        </TouchableOpacity>
+                      ) : (
+                        <Text
+                          style={[
+                            tw`text-white text-xs font-bold`,
+                            column.textStyle,
+                          ]}
+                        >
+                          {column.label}
+                        </Text>
+                      )}
                     </View>
                   ))}
                 </View>
 
-                {(bookedTickets ?? []).map((ticket, index) => (
+                {visibleTickets.map((ticket, index) => (
                   <View
                     key={ticket.documentId}
                     style={[
@@ -410,6 +466,19 @@ export default function ExportEventsTicket() {
               </View>
             </ScrollView>
           </View>
+
+          {hasMoreTickets && (
+            <TouchableOpacity
+              onPress={() =>
+                setVisibleCount((current) => current + PREVIEW_BATCH_SIZE)
+              }
+              style={tw`bg-indigo-50 border border-indigo-200 rounded-2xl py-4 mb-5 items-center justify-center`}
+            >
+              <Text style={tw`text-indigo-700 font-bold text-sm`}>
+                {`Load More (+${Math.min(PREVIEW_BATCH_SIZE, remainingTickets)})`}
+              </Text>
+            </TouchableOpacity>
+          )}
 
           {/* Export CSV Button */}
           <TouchableOpacity

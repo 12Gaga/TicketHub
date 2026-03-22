@@ -12,7 +12,7 @@ import tw from "twrnc";
 import { Ionicons } from "@expo/vector-icons";
 import globalApi from "../Configs/globalApi";
 import { useNavigation } from "@react-navigation/native";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import UserAuth from "../Configs/UserAuth";
 import * as FileSystem from "expo-file-system/legacy";
@@ -22,6 +22,8 @@ import CreateAgent from "../Components/CreateAgent";
 import { ExportContext } from "../Configs/AuthContext";
 import ExportEventsTicket from "../Components/ExportEventsTicket";
 import RegenerateBarcode from "../Components/RegenerateBarcode";
+
+const EMPTY_SORT_CONFIG = Object.freeze({ key: null, direction: null });
 
 function sanitizeFileName(value) {
   return (value ?? "")
@@ -43,6 +45,76 @@ function formatDate(dateStr) {
 
 function getAgentName(ticket) {
   return ticket?.Agent ?? ticket?.agent?.Name ?? "";
+}
+
+function normalizeSortText(value) {
+  return String(value ?? "").trim().toLowerCase();
+}
+
+function getBookedAtTimestamp(value) {
+  if (value instanceof Date) {
+    const timestamp = value.getTime();
+    return Number.isNaN(timestamp) ? 0 : timestamp;
+  }
+
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : 0;
+  }
+
+  if (typeof value !== "string" || !value.trim()) {
+    return 0;
+  }
+
+  const timestamp = new Date(value).getTime();
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+}
+
+function getSortValue(ticket, sortKey) {
+  if (!ticket || typeof ticket !== "object") {
+    return sortKey === "bookedAt" ? 0 : "";
+  }
+
+  switch (sortKey) {
+    case "name":
+      return normalizeSortText(ticket?.Name);
+    case "agent":
+      return normalizeSortText(getAgentName(ticket));
+    case "bookedAt":
+      return getBookedAtTimestamp(ticket?.createdAt);
+    default:
+      return "";
+  }
+}
+
+function sortBookedTickets(tickets, sortConfig) {
+  if (!Array.isArray(tickets) || !sortConfig.key || !sortConfig.direction) {
+    return tickets;
+  }
+
+  const sortMultiplier = sortConfig.direction === "asc" ? 1 : -1;
+
+  try {
+    return tickets
+      .map((ticket, index) => ({ ticket, index }))
+      .sort((left, right) => {
+        const leftValue = getSortValue(left.ticket, sortConfig.key);
+        const rightValue = getSortValue(right.ticket, sortConfig.key);
+
+        if (leftValue < rightValue) {
+          return -1 * sortMultiplier;
+        }
+
+        if (leftValue > rightValue) {
+          return 1 * sortMultiplier;
+        }
+
+        return left.index - right.index;
+      })
+      .map(({ ticket }) => ticket);
+  } catch (error) {
+    console.error("Failed to sort booked tickets:", error);
+    return tickets;
+  }
 }
 
 function exportToCSV(tickets) {
@@ -139,6 +211,7 @@ export default function ReportScreen() {
   const [events, setEvents] = useState([]);
   const [avariableTicketType, setAvariableTicketType] = useState([]);
   const [bookedTickets, setBookedTickets] = useState([]);
+  const [sortConfig, setSortConfig] = useState(EMPTY_SORT_CONFIG);
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [selectedEventName, setSelectedEventName] = useState("");
@@ -166,6 +239,29 @@ export default function ReportScreen() {
     fetchUser();
     fetchEvents();
   }, []);
+
+  const sortedBookedTickets = useMemo(
+    () => sortBookedTickets(bookedTickets ?? [], sortConfig),
+    [bookedTickets, sortConfig],
+  );
+
+  const toggleSort = (columnKey) => {
+    setSortConfig((current) => {
+      if (current.key !== columnKey) {
+        return { key: columnKey, direction: "asc" };
+      }
+
+      if (current.direction === "asc") {
+        return { key: columnKey, direction: "desc" };
+      }
+
+      if (current.direction === "desc") {
+        return EMPTY_SORT_CONFIG;
+      }
+
+      return { key: columnKey, direction: "asc" };
+    });
+  };
 
   const handleExportAllCSV = async () => {
     setExportingAll(true);
@@ -242,6 +338,7 @@ export default function ReportScreen() {
     setData({ event: eventID, ticket: null });
     setAvariableTicketType([]);
     setBookedTickets([]);
+    setSortConfig(EMPTY_SORT_CONFIG);
     try {
       const resp = await globalApi.getTicketLimit(eventID);
       if (resp.ok) {
@@ -264,6 +361,7 @@ export default function ReportScreen() {
         resp = await globalApi.getBookedTicket(data.ticket, data.event);
       }
       if (resp.ok) {
+        setSortConfig(EMPTY_SORT_CONFIG);
         setBookedTickets(resp.data.data);
       }
     } catch (error) {
@@ -281,7 +379,7 @@ export default function ReportScreen() {
     }
     setExporting(true);
     try {
-      const csv = exportToCSV(bookedTickets);
+      const csv = exportToCSV(sortedBookedTickets);
       const eventPart = sanitizeFileName(selectedEventName) || "event";
       // if All selected, label as "all_tickets"
       const ticketPart =
@@ -375,6 +473,9 @@ export default function ReportScreen() {
           canSearch,
           loading,
           bookedTickets,
+          sortedBookedTickets,
+          sortConfig,
+          toggleSort,
           checkedInCount,
           notCheckedInCount,
           selectedEventName,
