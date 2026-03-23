@@ -20,6 +20,15 @@ export default function SingleEntry() {
     loading,
     agents,
   } = useContext(SaleTicket);
+
+  const canGenerateTicket =
+    data.event &&
+    data.ticket &&
+    data.Name &&
+    data.agent &&
+    !soldOut &&
+    (!data.Ticket_Status || data.Ticket_Id);
+
   return (
     <View>
       {activeTab === "single" && (
@@ -296,24 +305,10 @@ export default function SingleEntry() {
               {/* Generate Ticket Button */}
               <TouchableOpacity
                 style={tw`bg-indigo-600 rounded-xl py-4 flex-row items-center justify-center mb-15 ${
-                  data.event &&
-                  data.ticket &&
-                  data.Name &&
-                  !soldOut &&
-                  (!data.Ticket_Status || data.Ticket_Id)
-                    ? "opacity-100"
-                    : "opacity-50"
+                  canGenerateTicket ? "opacity-100" : "opacity-50"
                 }`}
                 onPress={handleBooking}
-                disabled={
-                  !(
-                    data.event &&
-                    data.ticket &&
-                    data.Name &&
-                    !soldOut &&
-                    (!data.Ticket_Status || data.Ticket_Id)
-                  )
-                }
+                disabled={!canGenerateTicket}
               >
                 {loading ? (
                   <ActivityIndicator size="small" color="#fff" />

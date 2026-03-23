@@ -32,19 +32,41 @@ api.addAsyncRequestTransform(async (request) => {
   }
 });
 
-const today = new Date();
-today.setHours(0, 0, 0, 0);
-const isoDate = today.toISOString();
+const formatLocalDate = (date = new Date()) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
+const getEventLifecycleQuery = (tabKey) => {
+  const today = formatLocalDate();
+
+  switch (tabKey) {
+    case "ongoing":
+      return `/events?filters[On_Live][$eq]=true&filters[Date][$lte]=${today}&populate=*`;
+    case "ended":
+      return "/events?filters[On_Live][$eq]=false&populate=*";
+    case "upcoming":
+    default:
+      return `/events?filters[On_Live][$eq]=true&filters[Date][$gt]=${today}&populate=*`;
+  }
+};
 
 const checkUser = (userData) => api.post("/auth/local", userData);
 const getTicket = () => api.get("/tickets");
 const getAgents = () => api.get("/agents");
 const getEvents = () =>
   api.get("/events?filters[On_Live][$eq]=true&populate=*");
+const getEventsByLifecycle = (tabKey = "upcoming") =>
+  api.get(getEventLifecycleQuery(tabKey));
 const getExpiredEvents = () =>
   api.get("/events?filters[On_Live][$eq]=false&populate=*");
 const setEventTicketLimit = (eventTicket) =>
   api.post("/ticket-limits?populate=*", { data: eventTicket });
+const updateEventTicketLimit = (documentId, eventTicket) =>
+  api.put(`/ticket-limits/${documentId}`, { data: eventTicket });
 const setBookedTicket = (bookingData) =>
   api.post("/booked-tickets", { data: bookingData });
 const createCheckIn = (checkInData) =>
@@ -57,15 +79,15 @@ const changeEventStatus = (documentId, status = false) =>
   });
 const getBookedTicket = (ticketID, eventID) =>
   api.get(
-    `/booked-tickets?filters[ticket][documentId][$eq]=${ticketID}&filters[event][documentId][$eq]=${eventID}&populate=*&pagination[start]=0&pagination[limit]=20000`,
+    `/booked-tickets?filters[ticket][documentId][$eq]=${ticketID}&filters[event][documentId][$eq]=${eventID}&populate=*&pagination[start]=0&pagination[limit]=200000`,
   );
 const getAllBookedTickets = () =>
   api.get(
-    "/booked-tickets?populate=*&pagination[start]=0&pagination[limit]=20000",
+    "/booked-tickets?populate=*&pagination[start]=0&pagination[limit]=200000",
   );
 const getBookedTicketByEvent = (eventID) =>
   api.get(
-    `/booked-tickets?filters[event][documentId][$eq]=${eventID}&populate=*&pagination[start]=0&pagination[limit]=20000`,
+    `/booked-tickets?filters[event][documentId][$eq]=${eventID}&populate=*&pagination[start]=0&pagination[limit]=200000`,
   );
 const getTicketLimit = (eventID) =>
   api.get(
@@ -92,12 +114,19 @@ const searchBookedTicketByName = (name) =>
   api.get(
     `/booked-tickets?filters[Name][$containsi]=${name}&populate[event][populate]=Image&populate=ticket`,
   );
+const searchBookedTicketByEventAndName = (eventID, name) =>
+  api.get(
+    `/booked-tickets?filters[event][documentId][$eq]=${encodeURIComponent(eventID)}&filters[Name][$containsi]=${encodeURIComponent(name)}&populate[event][populate]=Image&populate=ticket&sort[0]=createdAt:desc`,
+  );
+  
 export default {
   checkUser,
   getTicket,
   getEvents,
+  getEventsByLifecycle,
   getExpiredEvents,
   setEventTicketLimit,
+  updateEventTicketLimit,
   setEvent,
   changeEventStatus,
   getBookedTicket,
@@ -115,4 +144,5 @@ export default {
   uploadFile,
   getAllBookedTickets,
   searchBookedTicketByName,
+  searchBookedTicketByEventAndName,
 };

@@ -62,6 +62,8 @@ export default function SetTicket() {
         setCreateTicketLimit(resp.data.data);
         resetForm();
         setTicket(false);
+      } else {
+        setFailModal(true);
       }
     } catch (err) {
       setFailModal(true);

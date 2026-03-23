@@ -1,6 +1,7 @@
 import Fontisto from "@expo/vector-icons/Fontisto";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import * as ImageManipulator from "expo-image-manipulator";
+import { Picker } from "@react-native-picker/picker";
+import Checkbox from "expo-checkbox";
 import {
   View,
   Text,
@@ -11,7 +12,6 @@ import {
   ScrollView,
   Platform,
   Image,
-  Alert,
 } from "react-native";
 import tw from "twrnc";
 import { useContext, useState } from "react";
@@ -21,6 +21,19 @@ import { Ionicons } from "@expo/vector-icons";
 import { ActivityIndicator } from "react-native";
 import PopUpAlert from "./PopUpAlert";
 import * as ImagePicker from "expo-image-picker";
+import * as ImageManipulator from "expo-image-manipulator";
+import {
+  buildTicketLimitPayload,
+  createTicketDraft,
+  sanitizeTicketLimitInput,
+  validateTicketDrafts,
+} from "../Configs/eventTicketUtils";
+import {
+  EVENT_POSTER_HEIGHT,
+  EVENT_POSTER_PICKER_ASPECT,
+  EVENT_POSTER_RATIO,
+  EVENT_POSTER_WIDTH,
+} from "../Configs/ticketLayout";
 
 export default function CreateEvent() {
   const [eventData, setEventData] = useState({
@@ -38,16 +51,19 @@ export default function CreateEvent() {
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [selectedTime, setSelectedTime] = useState(new Date());
   const [selectedImage, setSelectedImage] = useState(null);
+  const [ticketRows, setTicketRows] = useState([]);
+  const [ticketDraft, setTicketDraft] = useState(createTicketDraft());
+  const [createdEventRecord, setCreatedEventRecord] = useState(null);
+  const [successfulTicketIds, setSuccessfulTicketIds] = useState([]);
 
   const {
     createEvent,
     setCreateEvent,
-    filteredEvents,
-    setFilteredEvents,
-    events,
-    setEvents,
+    refreshEvents,
     loading,
     setLoading,
+    tickets,
+    setCreateTicketLimit,
   } = useContext(EventContext);
 
   const resetForm = () => {
@@ -61,6 +77,10 @@ export default function CreateEvent() {
       Entry_Instruction: "",
     });
     setSelectedImage(null);
+    setTicketRows([]);
+    setTicketDraft(createTicketDraft());
+    setCreatedEventRecord(null);
+    setSuccessfulTicketIds([]);
   };
 
   const onChange = (event, selectedDate) => {
@@ -71,26 +91,46 @@ export default function CreateEvent() {
   };
 
   const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: false,
-      aspect: [1000, 1234],
-      quality: 1,
-    });
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: EVENT_POSTER_PICKER_ASPECT,
+        quality: 1,
+      });
 
-    if (!result.canceled) {
-      const asset = result.assets[0];
+      if (result.canceled) {
+        return;
+      }
 
-      // Verify dimensions
-      // if (asset.width !== 1000 || asset.height !== 1234) {
-      //   setText(
-      //     `Invalid Image Size \n Image must be exactly 1000 x 1234 px.\nYour image is ${asset.width} x ${asset.height} px.`,
-      //   );
-      //   setFailModal(true);
-      //   return;
-      // }
+      const pickedAsset = result.assets[0];
+      const normalizedImage = await ImageManipulator.manipulateAsync(
+        pickedAsset.uri,
+        [
+          {
+            resize: {
+              width: EVENT_POSTER_WIDTH,
+              height: EVENT_POSTER_HEIGHT,
+            },
+          },
+        ],
+        {
+          compress: 1,
+          format: ImageManipulator.SaveFormat.JPEG,
+        },
+      );
 
-      setSelectedImage(asset);
+      setSelectedImage({
+        ...pickedAsset,
+        uri: normalizedImage.uri,
+        width: normalizedImage.width,
+        height: normalizedImage.height,
+        fileName: pickedAsset.fileName || `event-poster-${Date.now()}.jpg`,
+        mimeType: "image/jpeg",
+      });
+    } catch (error) {
+      setText("Failed to prepare event image.");
+      setFailModal(true);
     }
   };
 
@@ -102,20 +142,112 @@ export default function CreateEvent() {
       type: imageAsset.mimeType || "image/jpeg",
     });
 
-    console.log("Uploading image...", imageAsset);
     const response = await globalApi.uploadFile(formData);
-    console.log("Upload response:", JSON.stringify(response));
-
     if (response.ok) {
       return response.data[0].id;
     }
-    console.log("Upload failed:", response.status, response.data);
+
     return null;
   };
 
+  const formatLocalDate = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+  };
+
+  const isTicketDraftEmpty = (row) =>
+    !row?.ticket && !row?.isLimited && !sanitizeTicketLimitInput(row?.Limit);
+
+  const updateTicketDraft = (patch) => {
+    setTicketDraft((current) => ({ ...current, ...patch }));
+  };
+
+  const removeTicketRow = (rowId) => {
+    setTicketRows((current) => current.filter((row) => row.id !== rowId));
+  };
+
+  const addTicketRow = () => {
+    const validationError = validateTicketDrafts([ticketDraft], {
+      reservedTicketIds: [
+        ...successfulTicketIds,
+        ...ticketRows.map((row) => row.ticket),
+      ],
+    });
+
+    if (validationError) {
+      setText(validationError);
+      setFailModal(true);
+      return;
+    }
+
+    setTicketRows((current) => [...current, ticketDraft]);
+    setTicketDraft(createTicketDraft());
+  };
+
+  const getAvailableTicketsForDraft = () => {
+    const reservedIds = new Set(successfulTicketIds.map((value) => String(value)));
+    ticketRows.forEach((row) => {
+      if (row.ticket) {
+        reservedIds.add(String(row.ticket));
+      }
+    });
+
+    return (tickets ?? []).filter((ticket) => {
+      const ticketId = String(ticket.documentId);
+      return !reservedIds.has(ticketId) || ticketId === String(ticketDraft.ticket || "");
+    });
+  };
+
+  const getTicketLabel = (ticketId) =>
+    tickets?.find((ticket) => ticket.documentId === ticketId)?.Name ??
+    "Ticket type";
+
+  const availableDraftTickets = getAvailableTicketsForDraft();
+
+  const createEventPayload = (imageId) => ({
+    Name: eventData.Name,
+    Date: formatLocalDate(eventData.Date),
+    Time: eventData.Time,
+    Venue: eventData.Venue,
+    Description: eventData.Description,
+    Terms: eventData.Terms,
+    Entry_Instruction: eventData.Entry_Instruction,
+    Image: imageId,
+  });
+
+  const persistTicketLinks = async (eventDocumentId, draftRows) => {
+    const results = await Promise.allSettled(
+      draftRows.map((row) =>
+        globalApi.setEventTicketLimit(buildTicketLimitPayload(row, eventDocumentId)),
+      ),
+    );
+
+    const succeededRows = [];
+    const failedRows = [];
+    let latestTicketLimit = null;
+
+    results.forEach((result, index) => {
+      const row = draftRows[index];
+      if (result.status === "fulfilled" && result.value.ok) {
+        succeededRows.push(row);
+        latestTicketLimit = result.value.data?.data ?? latestTicketLimit;
+      } else {
+        failedRows.push(row);
+      }
+    });
+
+    if (latestTicketLimit) {
+      setCreateTicketLimit(latestTicketLimit);
+    }
+
+    return { succeededRows, failedRows };
+  };
+
   const createTheEvent = async () => {
-    // Check image first before loading starts
-    if (!selectedImage) {
+    if (!selectedImage && !createdEventRecord) {
       setText(
         "Image Required! \n Please select an event image before creating.",
       );
@@ -123,40 +255,80 @@ export default function CreateEvent() {
       return;
     }
 
+    const rowsToSubmit = isTicketDraftEmpty(ticketDraft)
+      ? ticketRows
+      : [...ticketRows, ticketDraft];
+
+    const ticketValidationError = validateTicketDrafts(rowsToSubmit, {
+      minimumCount: 1,
+      reservedTicketIds: successfulTicketIds,
+    });
+
+    if (ticketValidationError) {
+      setText(ticketValidationError);
+      setFailModal(true);
+      return;
+    }
+
     setLoading(true);
     try {
-      const imageId = await uploadImage(selectedImage);
-      console.log("Image ID:", imageId);
+      let currentEvent = createdEventRecord;
 
-      const payload = {
-        Name: eventData.Name,
-        Date: eventData.Date.toISOString().split("T")[0],
-        Time: eventData.Time,
-        Venue: eventData.Venue,
-        Description: eventData.Description,
-        Terms: eventData.Terms,
-        Entry_Instruction: eventData.Entry_Instruction,
-        Image: imageId,
-      };
+      if (!currentEvent) {
+        const imageId = await uploadImage(selectedImage);
+        if (!imageId) {
+          throw new Error("Failed to upload event image.");
+        }
 
-      const resp = await globalApi.setEvent(payload);
-      console.log("Create event response:", JSON.stringify(resp.data));
-      if (resp.ok) {
-        setFilteredEvents([...filteredEvents, resp.data.data]);
-        setEvents([...events, resp.data.data]);
-        resetForm();
-        setCreateEvent(false);
-      } else {
-        setText("Failed to create event");
-        setFailModal(true);
+        const eventResp = await globalApi.setEvent(createEventPayload(imageId));
+        if (!eventResp.ok) {
+          throw new Error("Failed to create event.");
+        }
+
+        currentEvent = eventResp.data.data;
+        setCreatedEventRecord(currentEvent);
+        await refreshEvents?.();
       }
-    } catch (err) {
-      setText("Failed to create event");
+
+      const { succeededRows, failedRows } = await persistTicketLinks(
+        currentEvent.documentId,
+        rowsToSubmit,
+      );
+
+      if (failedRows.length > 0) {
+        setSuccessfulTicketIds((current) => [
+          ...new Set([
+            ...current,
+            ...succeededRows.map((row) => String(row.ticket)),
+          ]),
+        ]);
+        setTicketRows(
+          failedRows.length > 0 ? failedRows : [],
+        );
+        setTicketDraft(createTicketDraft());
+        setText(
+          "Event created, but some ticket types failed to save. Review the remaining rows and confirm again.",
+        );
+        setFailModal(true);
+        return;
+      }
+
+      resetForm();
+      setCreateEvent(false);
+    } catch (error) {
+      setText(error?.message || "Failed to create event");
       setFailModal(true);
     } finally {
       setLoading(false);
     }
   };
+
+  const canSubmitEvent =
+    !!eventData.Name &&
+    !!eventData.Date &&
+    !!eventData.Time &&
+    !!eventData.Venue &&
+    (!!selectedImage || !!createdEventRecord);
 
   return (
     <View>
@@ -176,21 +348,19 @@ export default function CreateEvent() {
           <View
             style={tw`flex-1 justify-center items-center bg-black bg-opacity-40`}
           >
-            <View style={tw`bg-white w-80 rounded-xl shadow-lg`}>
+            <View style={tw`bg-white w-[92%] rounded-2xl shadow-lg max-h-[88%]`}>
               <ScrollView
-                contentContainerStyle={tw`p-5`}
+                contentContainerStyle={tw`px-4 py-5`}
                 keyboardShouldPersistTaps="handled"
                 showsVerticalScrollIndicator={false}
               >
-                {/* Title */}
                 <Text style={tw`text-lg font-bold text-center`}>
                   Create New Event
                 </Text>
                 <Text style={tw`text-xs text-gray-400 mb-4 text-center`}>
-                  Add a new event to generate tickets for.
+                  Create the event and attach ticket types in one step.
                 </Text>
 
-                {/* Name */}
                 <View>
                   <Text style={tw`text-sm font-semibold text-gray-900 mb-1`}>
                     Event Name <Text style={tw`text-red-500`}>*</Text>
@@ -205,7 +375,6 @@ export default function CreateEvent() {
                   />
                 </View>
 
-                {/* Date */}
                 <TouchableOpacity
                   style={tw`mt-3 mb-1 rounded-lg`}
                   onPress={() => setShow(true)}
@@ -231,7 +400,6 @@ export default function CreateEvent() {
                   style={tw`border border-black rounded-[5px] pl-2 mb-3 text-[13px] text-gray-700`}
                 />
 
-                {/* Time */}
                 <View>
                   <Text style={tw`text-sm font-semibold text-gray-900 mb-1`}>
                     Event Time <Text style={tw`text-red-500`}>*</Text>
@@ -263,15 +431,16 @@ export default function CreateEvent() {
                             .getMinutes()
                             .toString()
                             .padStart(2, "0");
-                          const formatted = `${hours}:${minutes}:00`;
-                          setEventData({ ...eventData, Time: formatted });
+                          setEventData({
+                            ...eventData,
+                            Time: `${hours}:${minutes}:00`,
+                          });
                         }
                       }}
                     />
                   )}
                 </View>
 
-                {/* Venue */}
                 <View style={tw`mt-2`}>
                   <Text style={tw`text-sm font-semibold text-gray-900 mb-1`}>
                     Event Venue <Text style={tw`text-red-500`}>*</Text>
@@ -286,7 +455,6 @@ export default function CreateEvent() {
                   />
                 </View>
 
-                {/* Description */}
                 <View style={tw`mt-2`}>
                   <Text style={tw`text-sm font-semibold text-gray-900 mb-1`}>
                     Event Description
@@ -301,7 +469,6 @@ export default function CreateEvent() {
                   />
                 </View>
 
-                {/* Terms */}
                 <View style={tw`mt-2`}>
                   <Text style={tw`text-sm font-semibold text-gray-900 mb-1`}>
                     Terms and Conditions
@@ -316,7 +483,6 @@ export default function CreateEvent() {
                   />
                 </View>
 
-                {/* Instructions */}
                 <View style={tw`mt-2`}>
                   <Text style={tw`text-sm font-semibold text-gray-900 mb-1`}>
                     Entry Instructions
@@ -325,16 +491,21 @@ export default function CreateEvent() {
                     placeholder="Instructions for entering for event ..."
                     value={eventData.Entry_Instruction}
                     onChangeText={(text) =>
-                      setEventData({ ...eventData, Entry_Instruction: text })
+                      setEventData({
+                        ...eventData,
+                        Entry_Instruction: text,
+                      })
                     }
                     style={tw`border border-black rounded-[5px] pl-2 mb-2 text-[13px] text-gray-700`}
                   />
                 </View>
 
-                {/* Event Image */}
                 <View style={tw`mt-2`}>
                   <Text style={tw`text-sm font-semibold text-gray-900 mb-1`}>
                     Event Image <Text style={tw`text-red-500`}>*</Text>
+                  </Text>
+                  <Text style={tw`text-xs text-gray-400 mb-2`}>
+                    Poster will be fixed to 4:5 at 720 x 900 and uploaded as JPEG only.
                   </Text>
                   <TouchableOpacity
                     onPress={pickImage}
@@ -343,7 +514,11 @@ export default function CreateEvent() {
                     {selectedImage ? (
                       <Image
                         source={{ uri: selectedImage.uri }}
-                        style={tw`w-full h-32`}
+                        style={{
+                          width: "100%",
+                          aspectRatio: EVENT_POSTER_RATIO,
+                          maxHeight: 260,
+                        }}
                         resizeMode="cover"
                       />
                     ) : (
@@ -361,30 +536,162 @@ export default function CreateEvent() {
                   </TouchableOpacity>
                 </View>
 
-                {/* Buttons */}
+                <View style={tw`mt-4 border-t border-gray-200 pt-4`}>
+                  <View style={tw`mb-3`}>
+                    <Text style={tw`text-sm font-semibold text-gray-900`}>
+                      Ticket Types <Text style={tw`text-red-500`}>*</Text>
+                    </Text>
+                    <Text style={tw`text-xs text-gray-400 mt-1`}>
+                      Add ticket types one by one until the event setup is complete.
+                    </Text>
+                  </View>
+
+                  {createdEventRecord && successfulTicketIds.length > 0 ? (
+                    <View style={tw`mb-3 rounded-xl bg-emerald-50 px-3 py-2`}>
+                      <Text style={tw`text-xs text-emerald-700`}>
+                        Event created. {successfulTicketIds.length} ticket
+                        {successfulTicketIds.length > 1 ? " types are" : " type is"}{" "}
+                        already linked. Submit again to finish remaining rows.
+                      </Text>
+                    </View>
+                  ) : null}
+
+                  {ticketRows.length > 0 ? (
+                    <View style={tw`mb-3`}>
+                      <Text style={tw`text-xs font-semibold text-gray-500 mb-2`}>
+                        Added Ticket Types
+                      </Text>
+                      {ticketRows.map((row, index) => (
+                        <View
+                          key={row.id}
+                          style={tw`mb-2 rounded-xl border border-gray-200 px-3 py-3`}
+                        >
+                          <View style={tw`flex-row items-center justify-between`}>
+                            <View style={tw`flex-1 pr-3`}>
+                              <Text style={tw`text-sm font-semibold text-gray-800`}>
+                                {index + 1}. {getTicketLabel(row.ticket)}
+                              </Text>
+                              <Text style={tw`mt-1 text-xs text-gray-500`}>
+                                {row.isLimited
+                                  ? `Limited seats: ${row.Limit}`
+                                  : "Unlimited seats"}
+                              </Text>
+                            </View>
+                            <TouchableOpacity
+                              onPress={() => removeTicketRow(row.id)}
+                              style={tw`rounded-lg bg-red-50 px-2 py-1`}
+                            >
+                              <Text style={tw`text-xs font-semibold text-red-500`}>
+                                Remove
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  ) : null}
+
+                  {availableDraftTickets.length > 0 ? (
+                    <View style={tw`rounded-xl border border-gray-200 px-3 py-3`}>
+                      <View style={tw`flex-row items-center justify-between mb-2`}>
+                        <Text style={tw`text-sm font-semibold text-gray-800`}>
+                          Next Ticket Type
+                        </Text>
+                        {!isTicketDraftEmpty(ticketDraft) ? (
+                          <Text style={tw`text-xs font-semibold text-indigo-600`}>
+                            In progress
+                          </Text>
+                        ) : null}
+                      </View>
+
+                      <Text style={tw`text-sm font-semibold text-gray-900 mb-1`}>
+                        Ticket Type <Text style={tw`text-red-500`}>*</Text>
+                      </Text>
+                      <Picker
+                        selectedValue={ticketDraft.ticket}
+                        onValueChange={(ticketValue) =>
+                          updateTicketDraft({ ticket: ticketValue })
+                        }
+                        style={tw`bg-[#eee] mb-3 text-gray-700`}
+                      >
+                        <Picker.Item label="Select ticket type..." value="" />
+                        {availableDraftTickets.map((ticket) => (
+                          <Picker.Item
+                            key={ticket.documentId}
+                            label={ticket.Name}
+                            value={ticket.documentId}
+                          />
+                        ))}
+                      </Picker>
+
+                      <View style={tw`flex-row items-center mb-3`}>
+                        <Checkbox
+                          value={ticketDraft.isLimited}
+                          onValueChange={(value) =>
+                            updateTicketDraft({
+                              isLimited: value,
+                              Limit: value ? ticketDraft.Limit : "",
+                            })
+                          }
+                          color={ticketDraft.isLimited ? "#3b82f6" : undefined}
+                        />
+                        <Text style={tw`ml-2 text-[14px] text-gray-700 flex-1`}>
+                          Limit seats for this ticket type
+                        </Text>
+                      </View>
+
+                      {ticketDraft.isLimited ? (
+                        <TextInput
+                          placeholder="Seat count"
+                          value={ticketDraft.Limit}
+                          onChangeText={(value) =>
+                            updateTicketDraft({
+                              Limit: sanitizeTicketLimitInput(value),
+                            })
+                          }
+                          keyboardType="number-pad"
+                          style={tw`border p-2.5 text-gray-700 rounded-[5px]`}
+                        />
+                      ) : null}
+
+                      <TouchableOpacity
+                        onPress={addTicketRow}
+                        style={tw`mt-3 flex-row items-center justify-center rounded-xl bg-indigo-50 py-3`}
+                      >
+                        <Ionicons name="add" size={16} color="#4F46E5" />
+                        <Text
+                          style={tw`ml-2 text-sm font-semibold text-indigo-700`}
+                        >
+                          Add This Ticket Type
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <View
+                      style={tw`mt-3 rounded-xl border border-dashed border-gray-300 bg-gray-50 px-3 py-3`}
+                    >
+                      <Text style={tw`text-center text-xs text-gray-500`}>
+                        All available ticket types have already been added for
+                        this event.
+                      </Text>
+                    </View>
+                  )}
+
+                </View>
+
                 <View style={tw`flex-row items-center justify-end mt-2`}>
                   <TouchableOpacity
                     style={tw`bg-indigo-600 p-3 rounded-xl mr-1.5 ${
-                      !eventData.Name ||
-                      !eventData.Date ||
-                      !eventData.Time ||
-                      !eventData.Venue
-                        ? "opacity-50"
-                        : "opacity-100"
+                      canSubmitEvent ? "opacity-100" : "opacity-50"
                     }`}
-                    disabled={
-                      !eventData.Name ||
-                      !eventData.Date ||
-                      !eventData.Time ||
-                      !eventData.Venue
-                    }
+                    disabled={!canSubmitEvent}
                     onPress={createTheEvent}
                   >
                     {loading ? (
                       <ActivityIndicator size="small" color="#fff" />
                     ) : (
                       <Text style={tw`text-white text-center font-semibold`}>
-                        Create Event
+                        Confirm
                       </Text>
                     )}
                   </TouchableOpacity>
