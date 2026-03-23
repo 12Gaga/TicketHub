@@ -105,55 +105,32 @@ export default function OfflineTicketGeneration() {
   );
 
   const changeEvent = async (eventID) => {
-    setData({ ...data, event: eventID });
+    setData((current) => ({
+      ...current,
+      event: eventID,
+      ticket: null,
+    }));
+    setTicketLimit([]);
     setAvariableTicketType([]);
-    try {
-      const resp = await globalApi.getTicketLimit(eventID);
-      if (resp.ok) {
-        console.log("ticketLimit", resp.data.data);
-        setTicketLimit(resp.data.data);
-        const tickets = resp.data.data.map((item) => item.ticket);
-        setAvariableTicketType(tickets);
-        const bookedResp = await globalApi.getBookedTicketByEvent(eventID);
-        if (bookedResp.ok) {
-          setBookedTickets(bookedResp.data.data);
-        } else {
-          console.log("error", bookedResp.problem);
-        }
-      } else {
-        console.log("error", resp.problem);
-      }
-    } catch (error) {
-      console.error(error);
+    setBookedTickets([]);
+    setSoldOut(false);
+
+    if (!eventID) {
+      return;
     }
+
+    await refreshEventInventory(eventID, null);
   };
 
   const changeTicket = async (ticketID) => {
-    setData({ ...data, ticket: ticketID });
-    try {
-      const resp = await globalApi.getBookedTicket(ticketID, data.event);
-      if (resp.ok) {
-        console.log("bookedTickets", resp.data.data);
-        const ticketLimitEntry = ticketLimit.find(
-          (item) => item.ticket.documentId == ticketID,
-        );
-        const limit = ticketLimitEntry.Limit;
-        if (!limit) {
-          setSoldOut(false);
-        } else if (
-          resp.data.data.length >= limit &&
-          ticketLimitEntry.isLimited
-        ) {
-          setSoldOut(true);
-        } else {
-          setSoldOut(false);
-        }
-      } else {
-        console.log("error", resp.problem);
-      }
-    } catch (error) {
-      console.error(error);
+    setData((current) => ({ ...current, ticket: ticketID }));
+
+    if (!data.event || !ticketID) {
+      setSoldOut(false);
+      return;
     }
+
+    await refreshEventInventory(data.event, ticketID);
   };
 
   const generateCode = () => {
@@ -190,6 +167,87 @@ export default function OfflineTicketGeneration() {
 
   const hasLookupError = (resp) => !resp.ok && resp.status !== 404;
 
+  const deriveSoldOutState = (
+    ticketID,
+    nextTicketLimit = ticketLimit,
+    nextBookedTickets = bookedTickets,
+  ) => {
+    if (!ticketID) {
+      return false;
+    }
+
+    const ticketLimitEntry = (nextTicketLimit ?? []).find(
+      (item) => item.ticket?.documentId == ticketID,
+    );
+    const limit = ticketLimitEntry?.Limit;
+
+    if (!ticketLimitEntry?.isLimited || !limit) {
+      return false;
+    }
+
+    const currentBookedCount = (nextBookedTickets ?? []).filter(
+      (ticket) => ticket.ticket?.documentId == ticketID,
+    ).length;
+
+    return currentBookedCount >= limit;
+  };
+
+  const refreshEventInventory = async (
+    eventID,
+    selectedTicketId = data.ticket,
+  ) => {
+    if (!eventID) {
+      setTicketLimit([]);
+      setAvariableTicketType([]);
+      setBookedTickets([]);
+      setSoldOut(false);
+      return { ticketLimit: [], bookedTickets: [] };
+    }
+
+    let nextTicketLimit = [];
+    let nextBookedTickets = [];
+
+    try {
+      const [ticketLimitResp, bookedResp] = await Promise.all([
+        globalApi.getTicketLimit(eventID),
+        globalApi.getBookedTicketByEvent(eventID),
+      ]);
+
+      if (ticketLimitResp.ok) {
+        nextTicketLimit = ticketLimitResp.data?.data ?? [];
+        setTicketLimit(nextTicketLimit);
+        setAvariableTicketType(nextTicketLimit.map((item) => item.ticket));
+      } else {
+        console.log("error", ticketLimitResp.problem);
+        setTicketLimit([]);
+        setAvariableTicketType([]);
+      }
+
+      if (bookedResp.ok) {
+        nextBookedTickets = bookedResp.data?.data ?? [];
+        setBookedTickets(nextBookedTickets);
+      } else {
+        console.log("error", bookedResp.problem);
+        setBookedTickets([]);
+      }
+
+      setSoldOut(
+        deriveSoldOutState(selectedTicketId, nextTicketLimit, nextBookedTickets),
+      );
+
+      return {
+        ticketLimit: nextTicketLimit,
+        bookedTickets: nextBookedTickets,
+      };
+    } catch (error) {
+      console.error(error);
+      return {
+        ticketLimit: nextTicketLimit,
+        bookedTickets: nextBookedTickets,
+      };
+    }
+  };
+
   const ensureTicketIdIsAvailable = async (ticketId) => {
     const [uniqueResp, documentResp] = await Promise.all([
       globalApi.getTicketByTicketUniqueId(ticketId),
@@ -224,6 +282,8 @@ export default function OfflineTicketGeneration() {
       return;
     }
     let idOfTicket = data.Ticket_Id?.trim();
+    const currentEventId = data.event;
+    const currentTicketId = data.ticket;
 
     if (data.Ticket_Status) {
       if (!idOfTicket) {
@@ -274,14 +334,15 @@ export default function OfflineTicketGeneration() {
       const resp = await globalApi.setBookedTicket(payload.data);
       if (resp.ok) {
         console.log("ticketResp", resp.data.data);
+        await refreshEventInventory(currentEventId, currentTicketId);
         if (data.Ticket_Status) {
           console.log("offline");
           setData({
-            event: data.event,
+            event: currentEventId,
             Name: "",
             Email: null,
             Phone: "",
-            ticket: data.ticket,
+            ticket: currentTicketId,
             Ticket_Status: true,
             Payment: "Cash",
             agent: data.agent,
@@ -289,7 +350,6 @@ export default function OfflineTicketGeneration() {
             Note: data.Note,
             Ticket_Id: null,
           });
-          setSoldOut(false);
           setBuyState(1);
           setSuccessModal(true);
         } else {
@@ -302,11 +362,11 @@ export default function OfflineTicketGeneration() {
           const customerName = data.Name;
           const seatNo = data.SeatNo;
           setData({
-            event: data.event,
+            event: currentEventId,
             Name: "",
             Email: null,
             Phone: "",
-            ticket: data.ticket,
+            ticket: currentTicketId,
             Ticket_Status: true,
             Payment: "Cash",
             agent: data.agent,
@@ -314,7 +374,6 @@ export default function OfflineTicketGeneration() {
             Note: data.Note,
             Ticket_Id: null,
           });
-          setSoldOut(false);
           setBuyState(1);
           navigation.navigate("generateQR", {
             documentId: idOfTicket,
@@ -381,6 +440,7 @@ export default function OfflineTicketGeneration() {
             ticketLimit,
             events,
             agents,
+            refreshEventInventory,
           }}
         >
           {/* Header */}

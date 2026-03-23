@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This file is a working guide for anyone modifying this Expo React Native app.
+This file is a working guide for anyone modifying this Expo React Native app with Strapi Backend.
 It documents the current setup, architecture, data flow, and repo-specific
 constraints based on the present codebase.
 

@@ -15,6 +15,20 @@ import PopUpAlert from "./PopUpAlert";
 import * as Sharing from "expo-sharing";
 import * as FileSystem from "expo-file-system/legacy";
 
+const STANDARD_TEMPLATE_COLUMNS = Object.freeze([
+  "Name",
+  "Email",
+  "Phone",
+  "Payment",
+  "Agent",
+  "Note",
+  "Ticket_Id",
+]);
+const LIMITED_TEMPLATE_COLUMNS = Object.freeze([
+  ...STANDARD_TEMPLATE_COLUMNS,
+  "SeatNo",
+]);
+
 async function saveCsvFile(fileName, content) {
   if (Platform.OS === "android") {
     const permissions =
@@ -83,6 +97,145 @@ function countBooked(ticketDocumentId, bookedTickets) {
   ).length;
 }
 
+function getTemplateColumns(isLimited) {
+  return isLimited ? LIMITED_TEMPLATE_COLUMNS : STANDARD_TEMPLATE_COLUMNS;
+}
+
+function splitCsvLine(line) {
+  return line.split(",").map((value) => value.trim());
+}
+
+function formatColumns(columns) {
+  return columns.join(",");
+}
+
+function normalizeImportValue(value) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function normalizeAgentName(value) {
+  return normalizeImportValue(value).toLowerCase();
+}
+
+function buildAgentLookup(agents) {
+  const agentLookup = new Map();
+
+  for (const agent of agents ?? []) {
+    const normalizedName = normalizeAgentName(agent?.Name);
+    if (!normalizedName) continue;
+
+    const matches = agentLookup.get(normalizedName) ?? [];
+    matches.push(agent);
+    agentLookup.set(normalizedName, matches);
+  }
+
+  return agentLookup;
+}
+
+function prepareSectionsForImport(sections, agents) {
+  const errors = [];
+  const ticketIdLines = new Map();
+  const agentLookup = buildAgentLookup(agents);
+
+  const normalizedSections = sections.map((section) => ({
+    ...section,
+    rows: section.rows.map((row) => {
+      const normalizedTicketId = normalizeImportValue(row.Ticket_Id);
+      const ticketIdLineNumbers = ticketIdLines.get(normalizedTicketId) ?? [];
+      ticketIdLineNumbers.push(row._lineNumber);
+      ticketIdLines.set(normalizedTicketId, ticketIdLineNumbers);
+
+      const normalizedAgentLabel = normalizeImportValue(row.Agent);
+      const matchingAgents = normalizedAgentLabel
+        ? (agentLookup.get(normalizeAgentName(normalizedAgentLabel)) ?? [])
+        : [];
+      let agentDocumentId = null;
+
+      if (normalizedAgentLabel && matchingAgents.length === 0) {
+        errors.push(
+          `Line ${row._lineNumber}: Agent "${normalizedAgentLabel}" does not match any existing agent.`,
+        );
+      } else if (normalizedAgentLabel && matchingAgents.length > 1) {
+        errors.push(
+          `Line ${row._lineNumber}: Agent "${normalizedAgentLabel}" matches multiple agents. Use a unique agent name.`,
+        );
+      } else if (normalizedAgentLabel) {
+        agentDocumentId = matchingAgents[0]?.documentId ?? null;
+      }
+
+      return {
+        ...row,
+        Agent: normalizedAgentLabel,
+        Ticket_Id: normalizedTicketId,
+        agent: agentDocumentId,
+      };
+    }),
+  }));
+
+  for (const [ticketId, lineNumbers] of ticketIdLines.entries()) {
+    if (ticketId && lineNumbers.length > 1) {
+      errors.push(
+        `Ticket_Id "${ticketId}" is duplicated in the file on lines ${lineNumbers.join(", ")}.`,
+      );
+    }
+  }
+
+  return {
+    sections: normalizedSections,
+    errors,
+  };
+}
+
+function getImportFailureMessage(response) {
+  const defaultMessage = "Import failed. Please try again.";
+  const backendError = response?.data?.error;
+
+  if (!backendError) {
+    return defaultMessage;
+  }
+
+  const details = backendError.details ?? {};
+  const detailLines = [];
+
+  if (
+    Array.isArray(details.duplicateIdsInPayload) &&
+    details.duplicateIdsInPayload.length > 0
+  ) {
+    detailLines.push(
+      `Duplicate Ticket_Id in file: ${details.duplicateIdsInPayload.join(", ")}`,
+    );
+  }
+
+  if (
+    Array.isArray(details.existingTicketIds) &&
+    details.existingTicketIds.length > 0
+  ) {
+    detailLines.push(
+      `Ticket_Id already exists: ${details.existingTicketIds.join(", ")}`,
+    );
+  }
+
+  if (
+    Array.isArray(details.missingAgentNames) &&
+    details.missingAgentNames.length > 0
+  ) {
+    detailLines.push(
+      `Unknown agent names: ${details.missingAgentNames.join(", ")}`,
+    );
+  }
+
+  if (
+    Array.isArray(details.ambiguousAgentNames) &&
+    details.ambiguousAgentNames.length > 0
+  ) {
+    detailLines.push(
+      `Ambiguous agent names: ${details.ambiguousAgentNames.join(", ")}`,
+    );
+  }
+
+  return [backendError.message || defaultMessage, ...detailLines].join("\n");
+}
+
 /**
  * Build CSV template string with ### SectionName ### separators.
  * All ticket types columns: Name, Email, Phone, Payment, Agent, Note, Ticket_Id
@@ -92,19 +245,7 @@ function countBooked(ticketDocumentId, bookedTickets) {
 function buildTemplateCSV(avariableTicketType, ticketLimit) {
   const sections = (avariableTicketType ?? []).map((ticket) => {
     const { isLimited } = getLimitInfo(ticket.documentId, ticketLimit);
-
-    const columns = isLimited
-      ? [
-          "Name",
-          "Email",
-          "Phone",
-          "Payment",
-          "Agent",
-          "Note",
-          "Ticket_Id",
-          "SeatNo",
-        ]
-      : ["Name", "Email", "Phone", "Payment", "Agent", "Note", "Ticket_Id"];
+    const columns = getTemplateColumns(isLimited);
 
     const exampleRow = isLimited
       ? [
@@ -139,7 +280,7 @@ function buildTemplateCSV(avariableTicketType, ticketLimit) {
 
 /**
  * Parse a section-separated CSV text.
- * Returns array of { ticketName: string, rows: object[] }
+ * Returns { sections: { ticketName: string, rows: object[] }[], errors: string[] }
  *
  * Expected format:
  *   ### Normal ###
@@ -150,64 +291,168 @@ function buildTemplateCSV(avariableTicketType, ticketLimit) {
  *   Name,Email,Phone,Payment,Agent,Note,Ticket_Id,SeatNo
  *   Jane Smith,...
  */
-function parseSectionedCSV(text) {
-  const lines = text.split("\n").map((l) => l.trimEnd());
+function parseSectionedCSV(text, avariableTicketType, ticketLimit) {
+  const lines = text.replace(/\r\n/g, "\n").split("\n").map((l) => l.trimEnd());
+  const expectedSections = new Map(
+    (avariableTicketType ?? []).map((ticket) => {
+      const { isLimited } = getLimitInfo(ticket.documentId, ticketLimit);
+      return [
+        ticket.Name.toLowerCase(),
+        {
+          ticketName: ticket.Name,
+          headers: getTemplateColumns(isLimited),
+        },
+      ];
+    }),
+  );
   const sections = [];
+  const errors = [];
+  const seenSections = new Set();
   let currentSection = null;
-  let currentHeaders = null;
+
+  const finalizeSection = () => {
+    if (!currentSection) return;
+
+    if (!currentSection.hasHeader) {
+      errors.push(
+        `Line ${currentSection.lineNumber}: Section "${currentSection.ticketName}" is missing its header row.`,
+      );
+    }
+
+    sections.push({
+      ticketName: currentSection.ticketName,
+      rows: currentSection.rows,
+    });
+  };
 
   for (let i = 0; i < lines.length; i++) {
+    const lineNumber = i + 1;
     const line = lines[i].trim();
     if (!line) continue;
 
     // Detect ### SectionName ### marker
     const sectionMatch = line.match(/^###\s*(.+?)\s*###$/);
     if (sectionMatch) {
-      if (currentSection) sections.push(currentSection);
-      currentSection = { ticketName: sectionMatch[1].trim(), rows: [] };
-      currentHeaders = null;
+      finalizeSection();
+
+      const ticketName = sectionMatch[1].trim();
+      const ticketKey = ticketName.toLowerCase();
+      const expectedSection = expectedSections.get(ticketKey);
+
+      if (!expectedSection) {
+        errors.push(
+          `Line ${lineNumber}: Section "${ticketName}" does not match any ticket type for this event.`,
+        );
+      }
+
+      if (seenSections.has(ticketKey)) {
+        errors.push(
+          `Line ${lineNumber}: Section "${ticketName}" appears more than once. Use one section per ticket type.`,
+        );
+      }
+
+      seenSections.add(ticketKey);
+      currentSection = {
+        ticketName,
+        lineNumber,
+        rows: [],
+        hasHeader: false,
+        hasValidHeader: false,
+        expectedHeaders: expectedSection?.headers ?? null,
+      };
       continue;
     }
 
-    if (!currentSection) continue;
+    if (!currentSection) {
+      errors.push(
+        `Line ${lineNumber}: Content must be inside a "### TicketType ###" section.`,
+      );
+      continue;
+    }
 
     // First non-empty line after section marker = column headers
-    if (!currentHeaders) {
-      currentHeaders = line.split(",").map((h) => h.trim().toLowerCase());
+    if (!currentSection.hasHeader) {
+      currentSection.hasHeader = true;
+
+      const headers = splitCsvLine(line);
+      const expectedHeaders = currentSection.expectedHeaders;
+
+      if (!expectedHeaders) {
+        continue;
+      }
+
+      const isExactMatch =
+        headers.length === expectedHeaders.length &&
+        headers.every((header, idx) => header === expectedHeaders[idx]);
+
+      if (!isExactMatch) {
+        errors.push(
+          `Line ${lineNumber}: Section "${currentSection.ticketName}" header must be exactly "${formatColumns(expectedHeaders)}". Received "${formatColumns(headers)}".`,
+        );
+        continue;
+      }
+
+      currentSection.hasValidHeader = true;
       continue;
     }
 
-    // Data rows — skip if all values are empty
-    const values = line.split(",").map((v) => v.trim());
+    if (!currentSection.hasValidHeader) {
+      continue;
+    }
+
+    const values = splitCsvLine(line);
     if (values.every((v) => !v)) continue;
 
+    if (values.length !== currentSection.expectedHeaders.length) {
+      errors.push(
+        `Line ${lineNumber}: Section "${currentSection.ticketName}" row must contain ${currentSection.expectedHeaders.length} columns. Received ${values.length}.`,
+      );
+      continue;
+    }
+
     const row = {};
-    currentHeaders.forEach((header, idx) => {
+    currentSection.expectedHeaders.forEach((header, idx) => {
       row[header] = values[idx] !== undefined ? values[idx] : "";
     });
 
+    if (!row.Name) {
+      errors.push(
+        `Line ${lineNumber}: Section "${currentSection.ticketName}" requires Name for every row.`,
+      );
+    }
+
+    if (!row.Ticket_Id) {
+      errors.push(
+        `Line ${lineNumber}: Section "${currentSection.ticketName}" requires Ticket_Id for every row.`,
+      );
+    }
+
+    if (!row.Name || !row.Ticket_Id) {
+      continue;
+    }
+
     currentSection.rows.push({
-      Name: row["name"] || "",
-      Email: row["email"] || null,
-      Phone: row["phone"] || "",
-      Payment: row["payment"] || "Cash",
-      Agent: row["agent"] || "",
-      Note: row["note"] || "",
-      Ticket_Id: row["ticket_id"] || null,
-      SeatNo: row["seatno"] || "",
+      Name: row.Name,
+      Email: row.Email || null,
+      Phone: row.Phone || "",
+      Payment: row.Payment || "Cash",
+      Agent: row.Agent || "",
+      Note: row.Note || "",
+      Ticket_Id: row.Ticket_Id || null,
+      SeatNo: row.SeatNo || "",
+      _lineNumber: lineNumber,
       Ticket_Status: true, // always true, never from CSV
     });
   }
 
-  // Push the last section
-  if (currentSection) sections.push(currentSection);
+  finalizeSection();
 
-  return sections;
+  return { sections, errors };
 }
 
 /**
  * Validate all sections against ticketLimit and bookedTickets.
- * Returns { valid: bool, exceededMessages: string[], skippedMessages: string[] }
+ * Returns { valid: bool, exceededMessages: string[] }
  * If ANY section exceeds its limit → valid = false → block entire import.
  * Unlimited ticket types (isLimited: false) are always valid.
  */
@@ -218,19 +463,13 @@ function validateSections(
   bookedTickets,
 ) {
   const exceededMessages = [];
-  const skippedMessages = [];
 
   for (const section of sections) {
     const ticketType = (avariableTicketType ?? []).find(
       (t) => t.Name.toLowerCase() === section.ticketName.toLowerCase(),
     );
 
-    if (!ticketType) {
-      skippedMessages.push(
-        `⚠️ "${section.ticketName}" does not match any ticket type and will be skipped.`,
-      );
-      continue;
-    }
+    if (!ticketType) continue;
 
     const { isLimited, limit } = getLimitInfo(
       ticketType.documentId,
@@ -255,7 +494,6 @@ function validateSections(
   return {
     valid: exceededMessages.length === 0,
     exceededMessages,
-    skippedMessages,
   };
 }
 
@@ -273,6 +511,8 @@ export default function BulkUpload() {
     bookedTickets,
     ticketLimit,
     events, // used to get event name for CSV filename
+    agents,
+    refreshEventInventory,
   } = useContext(SaleTicket);
 
   const [loading, setLoading] = useState(false);
@@ -281,6 +521,11 @@ export default function BulkUpload() {
   const [successModal, setSuccessModal] = useState(false);
   const [failModal, setFailModal] = useState(false);
   const [text, setText] = useState("");
+
+  const clearLoadedData = () => {
+    setSections([]);
+    setPreview([]);
+  };
 
   // ── Get current event name for filename ───────────────────
   const getEventName = () => {
@@ -351,14 +596,30 @@ export default function BulkUpload() {
       console.log("File content:", content);
 
       if (!content || content.trim() === "") {
+        clearLoadedData();
         setText("File is empty.");
         setFailModal(true);
         return;
       }
 
-      const parsedSections = parseSectionedCSV(content);
+      const { sections: parsedSections, errors } = parseSectionedCSV(
+        content,
+        avariableTicketType,
+        ticketLimit,
+      );
+
+      if (errors.length > 0) {
+        clearLoadedData();
+        setText(
+          "Import blocked. File must match the template exactly:\n\n" +
+            errors.join("\n"),
+        );
+        setFailModal(true);
+        return;
+      }
 
       if (parsedSections.length === 0) {
+        clearLoadedData();
         setText(
           'No valid sections found. Make sure the file uses "### TicketType ###" section headers.',
         );
@@ -366,6 +627,7 @@ export default function BulkUpload() {
         return;
       }
 
+      clearLoadedData();
       setSections(parsedSections);
 
       // Build flat preview — first 3 rows across all sections
@@ -386,6 +648,7 @@ export default function BulkUpload() {
       setSuccessModal(true);
     } catch (e) {
       console.error("File pick error:", e);
+      clearLoadedData();
       setText(e.message);
       setFailModal(true);
     }
@@ -405,47 +668,62 @@ export default function BulkUpload() {
       return;
     }
 
+    const { sections: preparedSections, errors: rowErrors } =
+      prepareSectionsForImport(sections, agents);
+
+    if (rowErrors.length > 0) {
+      setText(
+        "Import blocked. Please fix the following issues and re-upload:\n\n" +
+          rowErrors.join("\n"),
+      );
+      setFailModal(true);
+      return;
+    }
+
+    const latestInventory = refreshEventInventory
+      ? await refreshEventInventory(data.event, data.ticket)
+      : null;
+
     // Step 1: Validate all sections against limits
-    const { valid, exceededMessages, skippedMessages } = validateSections(
-      sections,
+    const { valid, exceededMessages } = validateSections(
+      preparedSections,
       avariableTicketType,
-      ticketLimit,
-      bookedTickets,
+      latestInventory?.ticketLimit ?? ticketLimit,
+      latestInventory?.bookedTickets ?? bookedTickets,
     );
 
     // If any section exceeded — block entire import
     if (!valid) {
       const warningText =
         "⛔ Import blocked! Please fix the following issues and re-upload:\n\n" +
-        exceededMessages.join("\n") +
-        (skippedMessages.length > 0 ? "\n\n" + skippedMessages.join("\n") : "");
+        exceededMessages.join("\n");
       setText(warningText);
       setFailModal(true);
       return;
     }
 
-    // Log skipped sections (unmatched) — not a blocker
-    if (skippedMessages.length > 0) {
-      console.warn("Skipped sections:", skippedMessages);
-    }
-
     // Step 2: Flatten all sections into one import payload
     const ticketsToImport = [];
 
-    for (const section of sections) {
+    for (const section of preparedSections) {
       const ticketType = (avariableTicketType ?? []).find(
         (t) => t.Name.toLowerCase() === section.ticketName.toLowerCase(),
       );
 
       if (!ticketType) continue; // already warned above
 
-      const rowsWithMeta = section.rows.map((row) => ({
-        ...row,
-        event: data.event,
-        ticket: ticketType.documentId,
-        Ticket_Status: true,
-        Seller_Id: user,
-      }));
+      const rowsWithMeta = section.rows.map((row) => {
+        const { _lineNumber, ...ticketRow } = row;
+
+        return {
+          ...ticketRow,
+          event: data.event,
+          ticket: ticketType.documentId,
+          agent: row.agent ?? null,
+          Ticket_Status: true,
+          Seller_Id: user,
+        };
+      });
 
       ticketsToImport.push(...rowsWithMeta);
     }
@@ -463,14 +741,14 @@ export default function BulkUpload() {
     try {
       const resp = await globalApi.bulkCreateTickets(ticketsToImport);
       if (resp.ok) {
+        await refreshEventInventory?.(data.event, data.ticket);
         setText(
           `✅ ${resp.data.created} tickets created\n❌ ${resp.data.failed} failed`,
         );
         setSuccessModal(true);
-        setSections([]);
-        setPreview([]);
+        clearLoadedData();
       } else {
-        setText("Import failed. Please try again.");
+        setText(getImportFailureMessage(resp));
         setFailModal(true);
       }
     } catch (e) {
@@ -534,7 +812,9 @@ export default function BulkUpload() {
                       "• Columns: Name, Email, Phone, Payment, Agent, Note, Ticket_Id\n"
                     }
                     {"• Limited ticket types also include: SeatNo\n"}
-                    {"• Email, Phone, Agent, Note are optional"}
+                    {"• Name and Ticket_Id are required on every row\n"}
+                    {"• Agent must match an existing agent name when provided\n"}
+                    {"• Headers must match the template exactly"}
                   </Text>
                 </View>
               </View>

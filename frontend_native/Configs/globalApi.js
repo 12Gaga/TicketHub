@@ -56,7 +56,8 @@ const getEventLifecycleQuery = (tabKey) => {
 
 const checkUser = (userData) => api.post("/auth/local", userData);
 const getTicket = () => api.get("/tickets");
-const getAgents = () => api.get("/agents");
+const getAgents = () =>
+  api.get("/agents?pagination[start]=0&pagination[limit]=1000&sort[0]=Name:asc");
 const getEvents = () =>
   api.get("/events?filters[On_Live][$eq]=true&populate=*");
 const getEventsByLifecycle = (tabKey = "upcoming") =>
