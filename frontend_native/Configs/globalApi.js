@@ -72,6 +72,8 @@ const setBookedTicket = (bookingData) =>
 const createCheckIn = (checkInData) =>
   api.post("/check-ins", { data: checkInData });
 const setEvent = (event) => api.post("/events", { data: event });
+const updateEvent = (documentId, event) =>
+  api.put(`/events/${documentId}`, { data: event });
 const setAgent = (agent) => api.post("/agents", { data: agent });
 const changeEventStatus = (documentId, status = false) =>
   api.put(`/events/${documentId}?locale=fr`, {
@@ -128,6 +130,7 @@ export default {
   setEventTicketLimit,
   updateEventTicketLimit,
   setEvent,
+  updateEvent,
   changeEventStatus,
   getBookedTicket,
   getTicketLimit,

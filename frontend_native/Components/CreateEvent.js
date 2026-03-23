@@ -20,8 +20,6 @@ import globalApi from "../Configs/globalApi";
 import { Ionicons } from "@expo/vector-icons";
 import { ActivityIndicator } from "react-native";
 import PopUpAlert from "./PopUpAlert";
-import * as ImagePicker from "expo-image-picker";
-import * as ImageManipulator from "expo-image-manipulator";
 import {
   buildTicketLimitPayload,
   createTicketDraft,
@@ -29,10 +27,11 @@ import {
   validateTicketDrafts,
 } from "../Configs/eventTicketUtils";
 import {
-  EVENT_POSTER_HEIGHT,
-  EVENT_POSTER_PICKER_ASPECT,
+  pickAndPrepareEventPoster,
+  uploadEventPoster,
+} from "../Configs/eventPosterUtils";
+import {
   EVENT_POSTER_RATIO,
-  EVENT_POSTER_WIDTH,
 } from "../Configs/ticketLayout";
 
 export default function CreateEvent() {
@@ -92,62 +91,14 @@ export default function CreateEvent() {
 
   const pickImage = async () => {
     try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: EVENT_POSTER_PICKER_ASPECT,
-        quality: 1,
-      });
-
-      if (result.canceled) {
-        return;
+      const nextImage = await pickAndPrepareEventPoster();
+      if (nextImage) {
+        setSelectedImage(nextImage);
       }
-
-      const pickedAsset = result.assets[0];
-      const normalizedImage = await ImageManipulator.manipulateAsync(
-        pickedAsset.uri,
-        [
-          {
-            resize: {
-              width: EVENT_POSTER_WIDTH,
-              height: EVENT_POSTER_HEIGHT,
-            },
-          },
-        ],
-        {
-          compress: 1,
-          format: ImageManipulator.SaveFormat.JPEG,
-        },
-      );
-
-      setSelectedImage({
-        ...pickedAsset,
-        uri: normalizedImage.uri,
-        width: normalizedImage.width,
-        height: normalizedImage.height,
-        fileName: pickedAsset.fileName || `event-poster-${Date.now()}.jpg`,
-        mimeType: "image/jpeg",
-      });
     } catch (error) {
       setText("Failed to prepare event image.");
       setFailModal(true);
     }
-  };
-
-  const uploadImage = async (imageAsset) => {
-    const formData = new FormData();
-    formData.append("files", {
-      uri: imageAsset.uri,
-      name: imageAsset.fileName || "photo.jpg",
-      type: imageAsset.mimeType || "image/jpeg",
-    });
-
-    const response = await globalApi.uploadFile(formData);
-    if (response.ok) {
-      return response.data[0].id;
-    }
-
-    return null;
   };
 
   const formatLocalDate = (date) => {
@@ -275,7 +226,7 @@ export default function CreateEvent() {
       let currentEvent = createdEventRecord;
 
       if (!currentEvent) {
-        const imageId = await uploadImage(selectedImage);
+        const imageId = await uploadEventPoster(selectedImage);
         if (!imageId) {
           throw new Error("Failed to upload event image.");
         }

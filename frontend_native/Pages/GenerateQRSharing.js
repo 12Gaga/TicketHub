@@ -17,6 +17,7 @@ import { useNavigation } from "@react-navigation/native";
 import PopUpAlert from "../Components/PopUpAlert";
 import * as MediaLibrary from "expo-media-library";
 import { Barcode } from "react-native-svg-barcode";
+import { resolveMediaUrl } from "../Configs/eventPosterUtils";
 import {
   EVENT_POSTER_RATIO,
   EVENT_POSTER_WIDTH,
@@ -123,11 +124,7 @@ export default function GenerateQRScreen({ route }) {
   }
 
   const barcodeValue = documentId ? String(documentId) : "INVALID";
-  const imageUrl = eventImage
-    ? eventImage.startsWith("http")
-      ? eventImage
-      : `https://loved-kindness-ad57dad94c.strapiapp.com${eventImage}`
-    : null;
+  const imageUrl = resolveMediaUrl(eventImage);
   const detailValues = {
     ticketId: documentId || "TBA",
     seatNo: seatNo || "Free Seating",

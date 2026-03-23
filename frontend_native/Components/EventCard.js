@@ -9,6 +9,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import Checkbox from "expo-checkbox";
@@ -25,6 +26,12 @@ import {
   sanitizeTicketLimitInput,
   validateTicketDrafts,
 } from "../Configs/eventTicketUtils";
+import {
+  pickAndPrepareEventPoster,
+  resolveMediaUrl,
+  uploadEventPoster,
+} from "../Configs/eventPosterUtils";
+import { EVENT_POSTER_RATIO } from "../Configs/ticketLayout";
 
 const GRAD_PALETTES = [
   ["#7C3AED", "#4F46E5"],
@@ -99,12 +106,18 @@ export default function EventCard({
   const [limitDrafts, setLimitDrafts] = useState({});
   const [newTicketRows, setNewTicketRows] = useState([]);
   const [newTicketDraft, setNewTicketDraft] = useState(createTicketDraft());
+  const [selectedImage, setSelectedImage] = useState(null);
   const [failModal, setFailModal] = useState(false);
   const [failText, setFailText] = useState("");
   const [saving, setSaving] = useState(false);
   const [markEnded, setMarkEnded] = useState(false);
-  const { createTicketLimit, loading, setCreateTicketLimit, tickets } =
-    useContext(EventContext);
+  const {
+    createTicketLimit,
+    loading,
+    refreshEvents,
+    setCreateTicketLimit,
+    tickets,
+  } = useContext(EventContext);
 
   const refreshEventData = async () => {
     const [ticketResp, bookedResp] = await Promise.all([
@@ -160,6 +173,7 @@ export default function EventCard({
 
     setNewTicketRows([]);
     setNewTicketDraft(createTicketDraft());
+    setSelectedImage(null);
     setMarkEnded(false);
   }, [visible, event.documentId]);
 
@@ -231,6 +245,32 @@ export default function EventCard({
     "Ticket type";
 
   const availableDraftTickets = getAvailableTicketsForDraft();
+  const previewImageUri =
+    selectedImage?.uri ?? resolveMediaUrl(event.Image?.url);
+
+  const createEventUpdatePayload = (imageId) => ({
+    Name: event.Name,
+    Date: event.Date,
+    Time: event.Time,
+    Venue: event.Venue,
+    Description: event.Description,
+    Terms: event.Terms,
+    Entry_Instruction: event.Entry_Instruction,
+    On_Live: event.On_Live,
+    ...(imageId ? { Image: imageId } : {}),
+  });
+
+  const pickImage = async () => {
+    try {
+      const nextImage = await pickAndPrepareEventPoster();
+      if (nextImage) {
+        setSelectedImage(nextImage);
+      }
+    } catch (error) {
+      setFailText("Failed to prepare event image.");
+      setFailModal(true);
+    }
+  };
 
   const saveExistingSeatCounts = async () => {
     const updates = [];
@@ -371,6 +411,24 @@ export default function EventCard({
   const handleConfirm = async () => {
     setSaving(true);
     try {
+      if (selectedImage) {
+        const imageId = await uploadEventPoster(selectedImage);
+        if (!imageId) {
+          throw new Error("Failed to upload event image.");
+        }
+
+        const eventResponse = await globalApi.updateEvent(
+          event.documentId,
+          createEventUpdatePayload(imageId),
+        );
+
+        if (!eventResponse.ok) {
+          throw new Error("Failed to update event image.");
+        }
+
+        await refreshEvents?.();
+      }
+
       const seatCountsSaved = await saveExistingSeatCounts();
       if (!seatCountsSaved) return;
 
@@ -378,6 +436,7 @@ export default function EventCard({
       if (!newRowsSaved) return;
 
       await refreshEventData();
+      await refreshEvents?.();
 
       if (markEnded) {
         await onComplete?.(event);
@@ -385,6 +444,9 @@ export default function EventCard({
       }
 
       setVisible(false);
+    } catch (error) {
+      setFailText(error?.message || "Failed to update event.");
+      setFailModal(true);
     } finally {
       setSaving(false);
     }
@@ -582,9 +644,54 @@ export default function EventCard({
                   Edit Event
                 </Text>
                 <Text style={tw`text-sm text-gray-500 mb-4`}>
-                  Update seat counts for limited ticket types, add more ticket
+                  Update the event poster, adjust ticket limits, add ticket
                   types, or mark the event ended.
                 </Text>
+
+                <View style={tw`mb-4`}>
+                  <Text style={tw`text-sm font-semibold text-gray-800 mb-1`}>
+                    Ticket Poster
+                  </Text>
+                  <Text style={tw`text-xs text-gray-500 mb-2`}>
+                    Poster will be fixed to 4:5 at 720 x 900 and uploaded as
+                    JPEG only.
+                  </Text>
+                  <View
+                    style={tw`overflow-hidden rounded-xl border border-gray-200 bg-gray-50`}
+                  >
+                    {previewImageUri ? (
+                      <Image
+                        source={{ uri: previewImageUri }}
+                        style={{
+                          width: "100%",
+                          aspectRatio: EVENT_POSTER_RATIO,
+                        }}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <View style={tw`items-center justify-center py-8 px-4`}>
+                        <Ionicons
+                          name="image-outline"
+                          size={28}
+                          color="#6B7280"
+                        />
+                        <Text style={tw`mt-2 text-sm font-medium text-gray-600`}>
+                          No poster selected
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                  <TouchableOpacity
+                    onPress={pickImage}
+                    style={tw`mt-3 flex-row items-center justify-center rounded-xl border border-indigo-200 bg-indigo-50 py-3`}
+                    disabled={saving || loading}
+                  >
+                    <Ionicons name="image-outline" size={16} color="#4F46E5" />
+                    <Text style={tw`ml-2 text-sm font-semibold text-indigo-700`}>
+                      {selectedImage ? "Change Selected Poster" : "Change Poster"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
 
                 <View style={tw`mb-4`}>
                   <Text style={tw`text-sm font-semibold text-gray-800 mb-2`}>
