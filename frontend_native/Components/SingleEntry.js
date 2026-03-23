@@ -42,7 +42,7 @@ export default function SingleEntry() {
                 Enter attendee details to generate a single ticket
               </Text>
 
-                            {/* Online / Offline Toggle */}
+              {/* Online / Offline Toggle */}
               <View style={tw`mb-4`}>
                 <Text style={tw`text-sm font-semibold text-gray-900 mb-2`}>
                   Sales Channel
