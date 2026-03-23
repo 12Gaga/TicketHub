@@ -21,12 +21,19 @@ import { Ionicons } from "@expo/vector-icons";
 import { ActivityIndicator } from "react-native";
 import PopUpAlert from "./PopUpAlert";
 import * as ImagePicker from "expo-image-picker";
+import * as ImageManipulator from "expo-image-manipulator";
 import {
   buildTicketLimitPayload,
   createTicketDraft,
   sanitizeTicketLimitInput,
   validateTicketDrafts,
 } from "../Configs/eventTicketUtils";
+import {
+  EVENT_POSTER_HEIGHT,
+  EVENT_POSTER_PICKER_ASPECT,
+  EVENT_POSTER_RATIO,
+  EVENT_POSTER_WIDTH,
+} from "../Configs/ticketLayout";
 
 export default function CreateEvent() {
   const [eventData, setEventData] = useState({
@@ -84,15 +91,46 @@ export default function CreateEvent() {
   };
 
   const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: false,
-      aspect: [1000, 1234],
-      quality: 1,
-    });
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: EVENT_POSTER_PICKER_ASPECT,
+        quality: 1,
+      });
 
-    if (!result.canceled) {
-      setSelectedImage(result.assets[0]);
+      if (result.canceled) {
+        return;
+      }
+
+      const pickedAsset = result.assets[0];
+      const normalizedImage = await ImageManipulator.manipulateAsync(
+        pickedAsset.uri,
+        [
+          {
+            resize: {
+              width: EVENT_POSTER_WIDTH,
+              height: EVENT_POSTER_HEIGHT,
+            },
+          },
+        ],
+        {
+          compress: 1,
+          format: ImageManipulator.SaveFormat.JPEG,
+        },
+      );
+
+      setSelectedImage({
+        ...pickedAsset,
+        uri: normalizedImage.uri,
+        width: normalizedImage.width,
+        height: normalizedImage.height,
+        fileName: pickedAsset.fileName || `event-poster-${Date.now()}.jpg`,
+        mimeType: "image/jpeg",
+      });
+    } catch (error) {
+      setText("Failed to prepare event image.");
+      setFailModal(true);
     }
   };
 
@@ -466,6 +504,9 @@ export default function CreateEvent() {
                   <Text style={tw`text-sm font-semibold text-gray-900 mb-1`}>
                     Event Image <Text style={tw`text-red-500`}>*</Text>
                   </Text>
+                  <Text style={tw`text-xs text-gray-400 mb-2`}>
+                    Poster will be fixed to 4:5 at 720 x 900 and uploaded as JPEG only.
+                  </Text>
                   <TouchableOpacity
                     onPress={pickImage}
                     style={tw`border border-black rounded-[5px] mb-2 items-center justify-center overflow-hidden`}
@@ -473,7 +514,11 @@ export default function CreateEvent() {
                     {selectedImage ? (
                       <Image
                         source={{ uri: selectedImage.uri }}
-                        style={tw`w-full h-32`}
+                        style={{
+                          width: "100%",
+                          aspectRatio: EVENT_POSTER_RATIO,
+                          maxHeight: 260,
+                        }}
                         resizeMode="cover"
                       />
                     ) : (

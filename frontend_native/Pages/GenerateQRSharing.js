@@ -17,9 +17,53 @@ import { useNavigation } from "@react-navigation/native";
 import PopUpAlert from "../Components/PopUpAlert";
 import * as MediaLibrary from "expo-media-library";
 import { Barcode } from "react-native-svg-barcode";
+import {
+  EVENT_POSTER_RATIO,
+  EVENT_POSTER_WIDTH,
+} from "../Configs/ticketLayout";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
-const STRAPI_URL = "https://loved-kindness-ad57dad94c.strapiapp.com";
+const CARD_WIDTH = Math.min(SCREEN_WIDTH - 32, EVENT_POSTER_WIDTH / 2);
+const TICKET_IMAGE_HEIGHT = Math.round(CARD_WIDTH / EVENT_POSTER_RATIO);
+
+const DETAIL_ITEMS = [
+  {
+    key: "ticketId",
+    label: "Ticket ID",
+    icon: "document-text-outline",
+    column: "left",
+  },
+  {
+    key: "seatNo",
+    label: "Seat No",
+    icon: "grid-outline",
+    column: "right",
+  },
+  {
+    key: "venue",
+    label: "Venue",
+    icon: "location-outline",
+    column: "left",
+  },
+  {
+    key: "time",
+    label: "Time",
+    icon: "time-outline",
+    column: "right",
+  },
+  {
+    key: "date",
+    label: "Date",
+    icon: "calendar-outline",
+    column: "left",
+  },
+  {
+    key: "holder",
+    label: "Ticket Holder",
+    icon: "person-outline",
+    column: "right",
+  },
+];
 
 export default function GenerateQRScreen({ route }) {
   const navigation = useNavigation();
@@ -38,14 +82,14 @@ export default function GenerateQRScreen({ route }) {
     seatNo,
     eventImage,
   } = route?.params ?? {
-    documentId: "u52jpr6kwzm8e9fsme397tzm",
+    documentId: "REC-2026-001234",
     ticketType: "VIP",
     eventName: "Rock Night 2026",
     eventDate: "",
+    eventTime: "",
     eventVenue: "",
     customerName: "Unknown",
     seatNo: "",
-    ticketId: "",
     eventImage: null,
   };
 
@@ -60,22 +104,38 @@ export default function GenerateQRScreen({ route }) {
 
   function formatDate(dateStr) {
     if (!dateStr) return "TBA";
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      return dateStr.replace(/-/g, ".");
+    }
+
     const d = new Date(dateStr);
-    return d.toLocaleDateString("en-US", {
-      weekday: "short",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
+
+    if (Number.isNaN(d.getTime())) {
+      return dateStr;
+    }
+
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+
+    return `${year}.${month}.${day}`;
   }
 
   const barcodeValue = documentId ? String(documentId) : "INVALID";
-  console.log("eventImage:", eventImage);
   const imageUrl = eventImage
     ? eventImage.startsWith("http")
       ? eventImage
       : `https://loved-kindness-ad57dad94c.strapiapp.com${eventImage}`
     : null;
+  const detailValues = {
+    ticketId: documentId || "TBA",
+    seatNo: seatNo || "Free Seating",
+    venue: eventVenue || "TBA",
+    time: formatTime(eventTime),
+    date: formatDate(eventDate),
+    holder: customerName || "Unknown",
+  };
 
   const qrRef = useRef(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -99,7 +159,11 @@ export default function GenerateQRScreen({ route }) {
 
   const handleSave = async () => {
     try {
-      const uri = await captureRef(qrRef, { format: "png", quality: 1 });
+      const uri = await captureRef(qrRef, {
+        format: "png",
+        quality: 1,
+        width: EVENT_POSTER_WIDTH,
+      });
       const { status } = await MediaLibrary.requestPermissionsAsync();
       if (status !== "granted") {
         setText("Permission denied. Cannot save to gallery.");
@@ -147,8 +211,9 @@ export default function GenerateQRScreen({ route }) {
           ref={qrRef}
           collapsable={false}
           style={[
-            tw`w-full`,
+            tw`w-full self-center`,
             {
+              width: CARD_WIDTH,
               opacity: fadeAnim,
               transform: [{ translateY: slideAnim }],
               shadowColor: "#000",
@@ -161,12 +226,41 @@ export default function GenerateQRScreen({ route }) {
             },
           ]}
         >
-          <View style={{ borderRadius: 16, overflow: "hidden" }}>
-            {/* ── TOP: Portrait Event Image ── */}
+          <View
+            style={{
+              borderRadius: 16,
+              overflow: "hidden",
+              backgroundColor: "#FFFFFF",
+            }}
+          >
+            <View
+              style={{
+                minHeight: 46,
+                backgroundColor: "#7A130C",
+                alignItems: "center",
+                justifyContent: "center",
+                paddingHorizontal: 16,
+                paddingVertical: 10,
+              }}
+            >
+              <Text
+                numberOfLines={1}
+                style={{
+                  color: "#FFFFFF",
+                  fontSize: 17,
+                  fontWeight: "800",
+                  letterSpacing: 0.2,
+                  textAlign: "center",
+                }}
+              >
+                {eventName || "Event Ticket"}
+              </Text>
+            </View>
+
             <View
               style={{
                 width: "100%",
-                aspectRatio: 1000 / 1234,
+                height: TICKET_IMAGE_HEIGHT,
                 backgroundColor: "#000",
               }}
             >
@@ -178,138 +272,50 @@ export default function GenerateQRScreen({ route }) {
                 />
               ) : (
                 <LinearGradient
-                  colors={["#8349e8", "#e2e2ea"]}
+                  colors={["#30110E", "#915022", "#E0AF6A"]}
                   style={{
                     flex: 1,
                     alignItems: "center",
                     justifyContent: "center",
+                    paddingHorizontal: 24,
                   }}
                 >
                   <Ionicons name="musical-notes" size={50} color="#fff" />
-                  <Text style={tw`text-white text-base mt-2 font-bold`}>
+                  <Text
+                    style={{
+                      color: "#FFFFFF",
+                      fontSize: 20,
+                      fontWeight: "800",
+                      textAlign: "center",
+                      marginTop: 12,
+                    }}
+                  >
                     {eventName}
+                  </Text>
+                  <Text
+                    style={{
+                      color: "rgba(255,255,255,0.82)",
+                      fontSize: 12,
+                      fontWeight: "600",
+                      marginTop: 8,
+                      textTransform: "uppercase",
+                      letterSpacing: 1.2,
+                    }}
+                  >
+                    {ticketType} Ticket
                   </Text>
                 </LinearGradient>
               )}
             </View>
 
-            {/* ── BOTTOM: Ticket Details ── */}
-            <View style={{ backgroundColor: "#FFFFFF", padding: 16 }}>
-              {/* Customer Name */}
-              <View style={{ marginBottom: 10 }}>
-                <Text
-                  style={{
-                    fontSize: 9,
-                    color: "#888",
-                    fontWeight: "700",
-                    letterSpacing: 1,
-                  }}
-                >
-                  TICKET HOLDER NAME
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 13,
-                    color: "#151415",
-                    fontWeight: "800",
-                  }}
-                >
-                  {customerName?.toUpperCase()}
-                </Text>
-              </View>
-
-              {/* Event Name */}
-              <View style={{ marginBottom: 10 }}>
-                <Text
-                  style={{
-                    fontSize: 9,
-                    color: "#888",
-                    fontWeight: "700",
-                    letterSpacing: 1,
-                  }}
-                >
-                  EVENT NAME
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 13,
-                    color: "#151415",
-                    fontWeight: "700",
-                  }}
-                >
-                  {eventName}
-                </Text>
-              </View>
-
-              {/* Date + Time Row */}
-              <View style={{ marginBottom: 12 }}>
-                <Text
-                  style={{
-                    fontSize: 9,
-                    color: "#888",
-                    fontWeight: "700",
-                    letterSpacing: 1,
-                  }}
-                >
-                  EVENT DATE
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 12,
-                    color: "#1a0a00",
-                    fontWeight: "700",
-                  }}
-                >
-                  {formatDate(eventDate)}
-                </Text>
-              </View>
-
-              <View style={{ marginBottom: 12 }}>
-                <Text
-                  style={{
-                    fontSize: 9,
-                    color: "#888",
-                    fontWeight: "700",
-                    letterSpacing: 1,
-                  }}
-                >
-                  EVENT TIME
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 12,
-                    color: "#1a0a00",
-                    fontWeight: "700",
-                  }}
-                >
-                  {formatTime(eventTime)}
-                </Text>
-              </View>
-
-              {/* Venue */}
-              <View style={{ marginBottom: 10 }}>
-                <Text
-                  style={{
-                    fontSize: 9,
-                    color: "#888",
-                    fontWeight: "700",
-                    letterSpacing: 1,
-                  }}
-                >
-                  EVENT VENUE
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 12,
-                    color: "#1a0a00",
-                    fontWeight: "700",
-                  }}
-                >
-                  {eventVenue?.toUpperCase()}
-                </Text>
-              </View>
-
-              {/* Ticket Type + Seat Row */}
+            <View
+              style={{
+                backgroundColor: "#FFFFFF",
+                paddingHorizontal: 18,
+                paddingTop: 18,
+                paddingBottom: 14,
+              }}
+            >
               <View
                 style={{
                   flexDirection: "row",
@@ -317,156 +323,124 @@ export default function GenerateQRScreen({ route }) {
                   marginBottom: 10,
                 }}
               >
-                <View>
+                <View
+                  style={{
+                    backgroundColor: "#FEF4E8",
+                    borderRadius: 999,
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                  }}
+                >
                   <Text
                     style={{
-                      fontSize: 9,
-                      color: "#888",
+                      fontSize: 11,
+                      color: "#7A130C",
                       fontWeight: "700",
-                      letterSpacing: 1,
-                    }}
-                  >
-                    TICKET TYPE
-                  </Text>
-                  <Text
-                    style={{
-                      fontSize: 13,
-                      color: "#1a0a00",
-                      fontWeight: "700",
+                      textTransform: "uppercase",
+                      letterSpacing: 0.7,
                     }}
                   >
                     {ticketType}
                   </Text>
                 </View>
-                {/* Seat No */}
-                {seatNo ? (
-                  <View style={{ alignItems: "flex-end" }}>
-                    <Text
-                      style={{
-                        fontSize: 9,
-                        color: "#888",
-                        fontWeight: "700",
-                        letterSpacing: 1,
-                      }}
-                    >
-                      SEAT No.
-                    </Text>
-                    <Text
-                      style={{
-                        fontSize: 13,
-                        color: "#1a0a00",
-                        fontWeight: "800",
-                      }}
-                    >
-                      {seatNo.toUpperCase()}
-                    </Text>
-                  </View>
-                ) : null}
               </View>
 
-              {/* Ticket No */}
-              <View style={{ marginBottom: 10 }}>
-                <Text
-                  style={{
-                    fontSize: 9,
-                    color: "#888",
-                    fontWeight: "700",
-                    letterSpacing: 1,
-                  }}
-                >
-                  BOOKING REFERENCE No.
-                </Text>
-                <Text
-                  style={{
-                    fontSize: 13,
-                    color: "#1a0a00",
-                    fontWeight: "700",
-                  }}
-                >
-                  {documentId}
-                </Text>
-              </View>
-
-              {/* Tear Line */}
               <View
                 style={{
                   flexDirection: "row",
-                  alignItems: "center",
-                  marginVertical: 12,
+                  flexWrap: "wrap",
+                  rowGap: 18,
                 }}
               >
-                <View
-                  style={{
-                    width: 16,
-                    height: 16,
-                    borderRadius: 8,
-                    backgroundColor: "#F3F4F6",
-                    marginLeft: -24,
-                  }}
-                />
-                {Array.from({ length: 22 }).map((_, i) => (
+                {DETAIL_ITEMS.map((item) => (
                   <View
-                    key={i}
+                    key={item.key}
                     style={{
-                      flex: 1,
-                      height: 1,
-                      backgroundColor: "#C9A84C",
-                      marginHorizontal: 2,
+                      width: "50%",
+                      paddingRight: item.column === "left" ? 16 : 0,
+                      paddingLeft: item.column === "right" ? 12 : 0,
                     }}
-                  />
+                  >
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "flex-start",
+                      }}
+                    >
+                      <Ionicons
+                        name={item.icon}
+                        size={18}
+                        color="#6D4A43"
+                        style={{ marginTop: 2, marginRight: 8 }}
+                      />
+                      <View style={{ flex: 1 }}>
+                        <Text
+                          style={{
+                            fontSize: 11,
+                            color: "#5A312A",
+                            fontWeight: "800",
+                            marginBottom: 4,
+                          }}
+                        >
+                          {item.label}
+                        </Text>
+                        <Text
+                          style={{
+                            fontSize: 12,
+                            lineHeight: 17,
+                            color: "#3B302E",
+                            fontWeight: "500",
+                          }}
+                        >
+                          {detailValues[item.key]}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
                 ))}
-                <View
-                  style={{
-                    width: 16,
-                    height: 16,
-                    borderRadius: 8,
-                    backgroundColor: "#F3F4F6",
-                    marginRight: -24,
-                  }}
-                />
               </View>
+            </View>
 
-              {/* Barcode */}
-              <View
+            <View
+              style={{
+                borderTopWidth: 1,
+                borderTopColor: "#E5E5E5",
+                backgroundColor: "#FFFFFF",
+                alignItems: "center",
+                paddingTop: 18,
+                paddingBottom: 22,
+                paddingHorizontal: 18,
+              }}
+            >
+              <Barcode
+                value={barcodeValue}
+                format="CODE128"
+                height={84}
+                lineColor="#000000"
+                background="#ffffff"
+                maxWidth={CARD_WIDTH - 72}
+              />
+              <Text
                 style={{
-                  alignItems: "center",
-                  paddingVertical: 10,
-                  backgroundColor: "#fff",
-                  borderRadius: 8,
+                  fontSize: 10,
+                  color: "#555555",
+                  marginTop: 10,
+                  letterSpacing: 1,
                 }}
               >
-                <Barcode
-                  value={barcodeValue}
-                  format="CODE128"
-                  height={70}
-                  lineColor="#000000"
-                  background="#ffffff"
-                  maxWidth={SCREEN_WIDTH - 80}
-                />
-                <Text
-                  style={{
-                    fontSize: 9,
-                    color: "#888",
-                    marginTop: 4,
-                    letterSpacing: 2,
-                  }}
-                >
-                  {barcodeValue}
-                </Text>
-              </View>
-
-              {/* Footer */}
+                {barcodeValue}
+              </Text>
               <Text
                 style={{
                   textAlign: "center",
                   fontSize: 10,
-                  color: "#aaa",
-                  marginTop: 10,
-                  letterSpacing: 2,
+                  color: "#7A7A7A",
+                  marginTop: 8,
+                  letterSpacing: 0.4,
                   fontWeight: "600",
                 }}
               >
-                BY K CONCERT
+                By K Concert
               </Text>
             </View>
           </View>
