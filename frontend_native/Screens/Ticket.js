@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Picker } from "@react-native-picker/picker";
 import globalApi from "../Configs/globalApi";
 import {
@@ -16,7 +16,7 @@ import { SaleTicket } from "../Configs/AuthContext";
 import SingleEntry from "../Components/SingleEntry";
 import BulkUploadWithSection from "../Components/BulkUploadWithSection";
 import UserAuth from "../Configs/UserAuth";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import PopUpAlert from "../Components/PopUpAlert";
 import { useRef } from "react";
 
@@ -51,39 +51,58 @@ export default function OfflineTicketGeneration() {
   const [soldOut, setSoldOut] = useState(false);
   const [bookedTickets, setBookedTickets] = useState([]);
 
-  useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        const result = await globalApi.getEvents();
-        console.log("Events:", result.data.data);
-        setEvents(result.data.data);
-      } catch (error) {
-        console.log("Error:", error);
-      }
-    };
-    const fetchAgents = async () => {
-      try {
-        const agents = await globalApi.getAgents();
-        console.log("Agents:", agents.data.data);
-        setAgents(agents.data.data);
-      } catch (error) {
-        console.log("Error:", error);
-      }
-    };
-    const fetchUser = async () => {
-      try {
-        const User = await UserAuth.getUserAuth();
-        console.log("User:", User);
-        setUser(User.documentId);
-      } catch (error) {
-        console.error("Error", error);
-      }
-    };
-    fetchUser();
-    fetchEvents();
-    fetchAgents();
-    return () => {};
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+
+      const fetchEvents = async () => {
+        try {
+          const result = await globalApi.getEvents();
+          if (!isActive || !result.ok) return;
+
+          console.log("Events:", result.data?.data);
+          setEvents(result.data?.data ?? []);
+        } catch (error) {
+          if (!isActive) return;
+          console.log("Error:", error);
+        }
+      };
+
+      const fetchAgents = async () => {
+        try {
+          const agentResp = await globalApi.getAgents();
+          if (!isActive || !agentResp.ok) return;
+
+          console.log("Agents:", agentResp.data?.data);
+          setAgents(agentResp.data?.data ?? []);
+        } catch (error) {
+          if (!isActive) return;
+          console.log("Error:", error);
+        }
+      };
+
+      const fetchUser = async () => {
+        try {
+          const currentUser = await UserAuth.getUserAuth();
+          if (!isActive) return;
+
+          console.log("User:", currentUser);
+          setUser(currentUser?.documentId ?? null);
+        } catch (error) {
+          if (!isActive) return;
+          console.error("Error", error);
+        }
+      };
+
+      fetchUser();
+      fetchEvents();
+      fetchAgents();
+
+      return () => {
+        isActive = false;
+      };
+    }, []),
+  );
 
   const changeEvent = async (eventID) => {
     setData({ ...data, event: eventID });
