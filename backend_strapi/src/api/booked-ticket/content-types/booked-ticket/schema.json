@@ -54,7 +54,8 @@
       "type": "string"
     },
     "Ticket_Id": {
-      "type": "string"
+      "type": "string",
+      "unique": true
     },
     "CheckIn_Status": {
       "type": "boolean",
