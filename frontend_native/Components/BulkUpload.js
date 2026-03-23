@@ -42,7 +42,6 @@ function parseCSV(text) {
       SeatNo: row["seatno"] || "",
       Note: row["note"] || "",
       Ticket_Id: row["ticket_id"] || null,
-      Ticket_Status: true,
     };
   });
 }
@@ -216,7 +215,6 @@ export default function BulkUpload() {
         ...t,
         event: data.event,
         ticket: data.ticket,
-        Ticket_Status: true,
         Seller_Id: user,
       }));
       console.log("data", ticketsWithEvent);

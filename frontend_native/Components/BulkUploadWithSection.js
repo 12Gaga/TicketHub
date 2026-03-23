@@ -240,7 +240,7 @@ function getImportFailureMessage(response) {
  * Build CSV template string with ### SectionName ### separators.
  * All ticket types columns: Name, Email, Phone, Payment, Agent, Note, Ticket_Id
  * Limited ticket types (isLimited: true) also get: SeatNo
- * Ticket_Status is NOT included — always set to true on import.
+ * Ticket_Status is NOT included — imported tickets use the backend default (true).
  */
 function buildTemplateCSV(avariableTicketType, ticketLimit) {
   const sections = (avariableTicketType ?? []).map((ticket) => {
@@ -441,7 +441,6 @@ function parseSectionedCSV(text, avariableTicketType, ticketLimit) {
       Ticket_Id: row.Ticket_Id || null,
       SeatNo: row.SeatNo || "",
       _lineNumber: lineNumber,
-      Ticket_Status: true, // always true, never from CSV
     });
   }
 
@@ -720,7 +719,6 @@ export default function BulkUpload() {
           event: data.event,
           ticket: ticketType.documentId,
           agent: row.agent ?? null,
-          Ticket_Status: true,
           Seller_Id: user,
         };
       });
