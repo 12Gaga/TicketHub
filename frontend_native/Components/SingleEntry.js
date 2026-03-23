@@ -19,6 +19,10 @@ export default function SingleEntry() {
     handleBooking,
     loading,
     agents,
+    duplicateNameMatches,
+    duplicateNameLoading,
+    duplicateNameQuery,
+    handleSingleEntryNameChange,
   } = useContext(SaleTicket);
 
   const canGenerateTicket =
@@ -136,8 +140,54 @@ export default function SingleEntry() {
                   value={data.Name}
                   style={tw`border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700`}
                   placeholderTextColor="#9CA3AF"
-                  onChangeText={(name) => setData({ ...data, Name: name })}
+                  onChangeText={handleSingleEntryNameChange}
                 />
+
+                {duplicateNameLoading && data.Name.trim() ? (
+                  <View style={tw`flex-row items-center mt-2`}>
+                    <ActivityIndicator size="small" color="#6366F1" />
+                    <Text style={tw`text-xs text-indigo-500 ml-2`}>
+                      Checking existing tickets...
+                    </Text>
+                  </View>
+                ) : null}
+
+                {!duplicateNameLoading &&
+                duplicateNameMatches.length > 0 &&
+                duplicateNameQuery.trim() ? (
+                  <View
+                    style={tw`mt-3 border border-amber-200 bg-amber-50 rounded-xl p-3`}
+                  >
+                    <View style={tw`flex-row items-center mb-2`}>
+                      <Ionicons
+                        name="alert-circle-outline"
+                        size={16}
+                        color="#D97706"
+                      />
+                      <Text style={tw`text-amber-700 font-semibold text-sm ml-2`}>
+                        Duplicate name found ({duplicateNameMatches.length})
+                      </Text>
+                    </View>
+
+                    {(duplicateNameMatches ?? []).map((ticket) => (
+                      <View
+                        key={ticket.documentId ?? ticket.Ticket_Id}
+                        style={tw`border border-amber-200 bg-white rounded-lg px-3 py-2 mb-2`}
+                      >
+                        <Text style={tw`text-sm font-semibold text-gray-900`}>
+                          {ticket.Name ?? "Unknown"}
+                        </Text>
+                        <Text style={tw`text-xs text-amber-700 mt-1`}>
+                          Ticket ID: {ticket.Ticket_Id ?? "—"}
+                        </Text>
+                      </View>
+                    ))}
+
+                    <Text style={tw`text-xs text-amber-700`}>
+                      This is a warning only. You can still generate the ticket.
+                    </Text>
+                  </View>
+                ) : null}
               </View>
 
               {/* Email Address */}

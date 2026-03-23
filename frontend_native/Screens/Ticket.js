@@ -20,8 +20,14 @@ import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import PopUpAlert from "../Components/PopUpAlert";
 import { useRef } from "react";
 
+const DUPLICATE_NAME_DEBOUNCE_DELAY = 600;
+
+const normalizeCustomerName = (value) =>
+  typeof value === "string" ? value.trim().toLowerCase() : "";
+
 export default function OfflineTicketGeneration() {
   const scrollRef = useRef(null);
+  const duplicateNameDebounceRef = useRef(null);
   const navigation = useNavigation();
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [successModal, setSuccessModal] = useState(false);
@@ -50,6 +56,69 @@ export default function OfflineTicketGeneration() {
   const [avariableTicketType, setAvariableTicketType] = useState([]);
   const [soldOut, setSoldOut] = useState(false);
   const [bookedTickets, setBookedTickets] = useState([]);
+  const [duplicateNameMatches, setDuplicateNameMatches] = useState([]);
+  const [duplicateNameLoading, setDuplicateNameLoading] = useState(false);
+  const [duplicateNameQuery, setDuplicateNameQuery] = useState("");
+
+  const clearDuplicateNameState = useCallback(() => {
+    if (duplicateNameDebounceRef.current) {
+      clearTimeout(duplicateNameDebounceRef.current);
+      duplicateNameDebounceRef.current = null;
+    }
+
+    setDuplicateNameMatches([]);
+    setDuplicateNameLoading(false);
+    setDuplicateNameQuery("");
+  }, []);
+
+  const runDuplicateNameLookup = useCallback(
+    (rawName) => {
+      const normalizedQuery = normalizeCustomerName(rawName);
+
+      if (!normalizedQuery) {
+        setDuplicateNameMatches([]);
+        return;
+      }
+
+      const nextMatches = (bookedTickets ?? []).filter(
+        (ticket) => normalizeCustomerName(ticket?.Name) === normalizedQuery,
+      );
+
+      setDuplicateNameMatches(nextMatches);
+    },
+    [bookedTickets],
+  );
+
+  const handleSingleEntryNameChange = useCallback(
+    (name) => {
+      setData((current) => ({ ...current, Name: name }));
+
+      if (duplicateNameDebounceRef.current) {
+        clearTimeout(duplicateNameDebounceRef.current);
+        duplicateNameDebounceRef.current = null;
+      }
+
+      const trimmedName = name?.trim?.() ?? "";
+
+      if (!data.event || !trimmedName) {
+        setDuplicateNameQuery("");
+        setDuplicateNameMatches([]);
+        setDuplicateNameLoading(false);
+        return;
+      }
+
+      setDuplicateNameQuery("");
+      setDuplicateNameMatches([]);
+      setDuplicateNameLoading(true);
+      duplicateNameDebounceRef.current = setTimeout(() => {
+        setDuplicateNameQuery(trimmedName);
+        runDuplicateNameLookup(name);
+        setDuplicateNameLoading(false);
+        duplicateNameDebounceRef.current = null;
+      }, DUPLICATE_NAME_DEBOUNCE_DELAY);
+    },
+    [data.event, runDuplicateNameLookup],
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -110,6 +179,7 @@ export default function OfflineTicketGeneration() {
       event: eventID,
       ticket: null,
     }));
+    clearDuplicateNameState();
     setTicketLimit([]);
     setAvariableTicketType([]);
     setBookedTickets([]);
@@ -335,6 +405,7 @@ export default function OfflineTicketGeneration() {
       if (resp.ok) {
         console.log("ticketResp", resp.data.data);
         await refreshEventInventory(currentEventId, currentTicketId);
+        clearDuplicateNameState();
         if (data.Ticket_Status) {
           console.log("offline");
           setData({
@@ -409,6 +480,42 @@ export default function OfflineTicketGeneration() {
     };
   }, []);
 
+  useEffect(() => {
+    if (activeTab === "single") {
+      return;
+    }
+
+    clearDuplicateNameState();
+  }, [activeTab, clearDuplicateNameState]);
+
+  useEffect(() => {
+    return () => {
+      if (duplicateNameDebounceRef.current) {
+        clearTimeout(duplicateNameDebounceRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (
+      activeTab !== "single" ||
+      !data.event ||
+      !duplicateNameQuery.trim() ||
+      duplicateNameLoading
+    ) {
+      return;
+    }
+
+    runDuplicateNameLookup(duplicateNameQuery);
+  }, [
+    activeTab,
+    bookedTickets,
+    data.event,
+    duplicateNameLoading,
+    duplicateNameQuery,
+    runDuplicateNameLookup,
+  ]);
+
   return (
     <KeyboardAvoidingView
       behavior="padding"
@@ -437,6 +544,10 @@ export default function OfflineTicketGeneration() {
             loading,
             user,
             bookedTickets,
+            duplicateNameMatches,
+            duplicateNameLoading,
+            duplicateNameQuery,
+            handleSingleEntryNameChange,
             ticketLimit,
             events,
             agents,
