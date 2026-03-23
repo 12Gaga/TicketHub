@@ -164,12 +164,22 @@ export default function CheckInScreen() {
     fetchTicket(manualInput.trim());
   };
 
+  const focusScannerInput = () => {
+    setTimeout(() => {
+      scannerInputRef.current?.focus?.();
+    }, 100);
+  };
+
   // ── Reset ──
   const handleReset = () => {
     setScanned(false);
     setResult(null);
     setManualInput("");
     setCameraOpen(false);
+
+    if (activeTab === "scanner") {
+      focusScannerInput();
+    }
   };
 
   // ── Switch tab ──
@@ -277,9 +287,7 @@ export default function CheckInScreen() {
 
   const handleSuccessModalClose = () => {
     setSuccessModal(false);
-    setTimeout(() => {
-      scannerInputRef.current?.focus?.();
-    }, 100);
+    focusScannerInput();
   };
 
   return (
