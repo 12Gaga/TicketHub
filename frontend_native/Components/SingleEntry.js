@@ -60,32 +60,8 @@ export default function SingleEntry() {
                 <Text style={tw`text-sm font-semibold text-gray-900 mb-2`}>
                   Sales Channel
                 </Text>
-                <View style={tw`flex-row`}>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setBuyState(1);
-                      setData({ ...data, Ticket_Status: true });
-                    }}
-                    style={tw`flex-1 flex-row items-center justify-center py-3 rounded-l-xl border border-gray-200 ${
-                      buyState === 1
-                        ? "bg-indigo-600 border-indigo-600"
-                        : "bg-white"
-                    }`}
-                  >
-                    <Ionicons
-                      name="storefront-outline"
-                      size={15}
-                      color={buyState === 1 ? "white" : "#6B7280"}
-                    />
-                    <Text
-                      style={tw`ml-1 text-sm font-semibold ${
-                        buyState === 1 ? "text-white" : "text-gray-500"
-                      }`}
-                    >
-                      Offline
-                    </Text>
-                  </TouchableOpacity>
 
+                <View style={tw`flex-row`}>
                   <TouchableOpacity
                     onPress={() => {
                       setBuyState(2);
@@ -108,6 +84,31 @@ export default function SingleEntry() {
                       }`}
                     >
                       Online
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => {
+                      setBuyState(1);
+                      setData({ ...data, Ticket_Status: true });
+                    }}
+                    style={tw`flex-1 flex-row items-center justify-center py-3 rounded-l-xl border border-gray-200 ${
+                      buyState === 1
+                        ? "bg-indigo-600 border-indigo-600"
+                        : "bg-white"
+                    }`}
+                  >
+                    <Ionicons
+                      name="storefront-outline"
+                      size={15}
+                      color={buyState === 1 ? "white" : "#6B7280"}
+                    />
+                    <Text
+                      style={tw`ml-1 text-sm font-semibold ${
+                        buyState === 1 ? "text-white" : "text-gray-500"
+                      }`}
+                    >
+                      Offline
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -164,7 +165,9 @@ export default function SingleEntry() {
                         size={16}
                         color="#D97706"
                       />
-                      <Text style={tw`text-amber-700 font-semibold text-sm ml-2`}>
+                      <Text
+                        style={tw`text-amber-700 font-semibold text-sm ml-2`}
+                      >
                         Duplicate name found ({duplicateNameMatches.length})
                       </Text>
                     </View>
