@@ -37,9 +37,7 @@ export default function RegenerateBarcode() {
   const navigation = useNavigation();
   const [failModal, setFailModal] = useState(false);
   const [text, setText] = useState("");
-  
-  // ── Barcode Search States ──
-  const [showSearch, setShowSearch] = useState(false);
+
   const [events, setEvents] = useState([]);
   const [eventsLoading, setEventsLoading] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState(null);
@@ -89,19 +87,6 @@ export default function RegenerateBarcode() {
     setTicketModal(false);
   };
 
-  const handleToggleSearch = () => {
-    setShowSearch((current) => {
-      const nextValue = !current;
-
-      if (!nextValue) {
-        setSelectedEventId(null);
-        resetSearchState();
-      }
-
-      return nextValue;
-    });
-  };
-
   const handleSelectEvent = (eventId) => {
     setSelectedEventId(eventId);
     resetSearchState();
@@ -144,186 +129,184 @@ export default function RegenerateBarcode() {
 
   return (
     <View>
-      <TouchableOpacity
-        style={tw`border border-indigo-600 rounded-xl py-4 flex-row items-center justify-center mb-4`}
-        onPress={handleToggleSearch}
-      >
-        <Ionicons name="barcode-outline" size={18} color="#4F46E5" />
-        <Text style={tw`text-indigo-600 font-bold text-sm ml-2`}>
-          Generate Barcode
-        </Text>
-      </TouchableOpacity>
-
-      {showSearch && (
-        <View style={tw`mb-4`}>
-          <View
-            style={tw`bg-white rounded-2xl p-4 mb-4 border border-gray-100`}
-          >
-            <Text style={tw`text-sm font-semibold text-gray-700 mb-1`}>
-              Event <Text style={tw`text-red-500`}>*</Text>
-            </Text>
+      <View style={tw`mb-4`}>
+        <View style={tw`bg-white rounded-2xl p-4 mb-4 border border-gray-100`}>
+          <View style={tw`flex-row items-center mb-4`}>
             <View
-              style={tw`border border-gray-200 rounded-xl bg-gray-50 overflow-hidden flex-row items-center px-3 mb-4`}
+              style={tw`w-10 h-10 rounded-xl bg-indigo-50 items-center justify-center mr-3`}
             >
-              <Ionicons
-                name="calendar-outline"
-                size={18}
-                color="#6366F1"
-                style={tw`mr-2`}
-              />
-              {eventsLoading ? (
-                <View style={tw`flex-1 py-4`}>
-                  <ActivityIndicator size="small" color="#4F46E5" />
-                </View>
-              ) : (
-                <Picker
-                  selectedValue={selectedEventId}
-                  onValueChange={handleSelectEvent}
-                  style={tw`flex-1 h-13 text-sm text-gray-700`}
-                >
-                  <Picker.Item
-                    label="Select an event"
-                    value={null}
-                    color="#9CA3AF"
-                  />
-                  {events.map((event) => (
-                    <Picker.Item
-                      key={event.documentId}
-                      label={event.Name}
-                      value={event.documentId}
-                      color="#111827"
-                    />
-                  ))}
-                </Picker>
-              )}
+              <Ionicons name="barcode-outline" size={20} color="#4F46E5" />
             </View>
-
-            <Text style={tw`text-sm font-semibold text-gray-700 mb-1`}>
-              Customer Name <Text style={tw`text-red-500`}>*</Text>
-            </Text>
-            <TextInput
-              value={searchName}
-              onChangeText={handleChangeSearchName}
-              placeholder="Type customer name..."
-              editable={!!selectedEventId}
-              style={[
-                tw`border rounded-xl px-4 py-3 text-sm bg-white`,
-                {
-                  borderColor: selectedEventId ? "#A5B4FC" : "#E5E7EB",
-                  color: selectedEventId ? "#374151" : "#9CA3AF",
-                },
-              ]}
-            />
-            <TouchableOpacity
-              style={[
-                tw`mt-3 px-4 py-3 rounded-xl items-center`,
-                { backgroundColor: canSearch ? "#4F46E5" : "#E5E7EB" },
-              ]}
-              onPress={handleSearchByName}
-              disabled={!canSearch || searching}
-            >
-              {searching ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <Text
-                  style={[
-                    tw`font-bold text-sm`,
-                    { color: canSearch ? "#FFFFFF" : "#9CA3AF" },
-                  ]}
-                >
-                  Search
-                </Text>
-              )}
-            </TouchableOpacity>
+            <View>
+              <Text style={tw`text-base font-bold text-gray-900`}>
+                Generate Barcode
+              </Text>
+            </View>
           </View>
 
-          {searchResults.length > 0 && (
-            <>
-              <View style={tw`flex-row items-center justify-between mb-3`}>
-                <Text style={tw`text-base font-bold text-gray-900`}>
-                  Results{" "}
-                  <Text style={tw`text-indigo-500`}>({searchResults.length})</Text>
-                </Text>
-                <Text style={tw`text-xs text-gray-400`}>
-                  {selectedEvent?.Name ?? "—"}
-                </Text>
+          <Text style={tw`text-sm font-semibold text-gray-700 mb-1`}>
+            Event <Text style={tw`text-red-500`}>*</Text>
+          </Text>
+          <View
+            style={tw`border border-gray-200 rounded-xl bg-gray-50 overflow-hidden flex-row items-center px-3 mb-4`}
+          >
+            <Ionicons
+              name="calendar-outline"
+              size={18}
+              color="#6366F1"
+              style={tw`mr-2`}
+            />
+            {eventsLoading ? (
+              <View style={tw`flex-1 py-4`}>
+                <ActivityIndicator size="small" color="#4F46E5" />
               </View>
+            ) : (
+              <Picker
+                selectedValue={selectedEventId}
+                onValueChange={handleSelectEvent}
+                style={tw`flex-1 h-13 text-sm text-gray-700`}
+              >
+                <Picker.Item
+                  label="Select an event"
+                  value={null}
+                  color="#9CA3AF"
+                />
+                {events.map((event) => (
+                  <Picker.Item
+                    key={event.documentId}
+                    label={event.Name}
+                    value={event.documentId}
+                    color="#111827"
+                  />
+                ))}
+              </Picker>
+            )}
+          </View>
 
-              <View
+          <Text style={tw`text-sm font-semibold text-gray-700 mb-1`}>
+            Customer Name <Text style={tw`text-red-500`}>*</Text>
+          </Text>
+          <TextInput
+            value={searchName}
+            onChangeText={handleChangeSearchName}
+            placeholder="Type customer name..."
+            editable={!!selectedEventId}
+            style={[
+              tw`border rounded-xl px-4 py-3 text-sm bg-white`,
+              {
+                borderColor: selectedEventId ? "#A5B4FC" : "#E5E7EB",
+                color: selectedEventId ? "#374151" : "#9CA3AF",
+              },
+            ]}
+          />
+          <TouchableOpacity
+            style={[
+              tw`mt-3 px-4 py-3 rounded-xl items-center`,
+              { backgroundColor: canSearch ? "#4F46E5" : "#E5E7EB" },
+            ]}
+            onPress={handleSearchByName}
+            disabled={!canSearch || searching}
+          >
+            {searching ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text
                 style={[
-                  tw`bg-white rounded-2xl overflow-hidden border border-gray-100 mb-4`,
-                  { elevation: 2 },
+                  tw`font-bold text-sm`,
+                  { color: canSearch ? "#FFFFFF" : "#9CA3AF" },
                 ]}
               >
-                <View style={[tw`flex-row`, { backgroundColor: "#4F46E5" }]}>
-                  <View style={[tw`px-3 py-3 justify-center`, { width: 60 }]}>
-                    <Text style={tw`text-white text-xs font-bold`}>No</Text>
+                Search
+              </Text>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {searchResults.length > 0 && (
+          <>
+            <View style={tw`flex-row items-center justify-between mb-3`}>
+              <Text style={tw`text-base font-bold text-gray-900`}>
+                Results{" "}
+                <Text style={tw`text-indigo-500`}>
+                  ({searchResults.length})
+                </Text>
+              </Text>
+              <Text style={tw`text-xs text-gray-400`}>
+                {selectedEvent?.Name ?? "—"}
+              </Text>
+            </View>
+
+            <View
+              style={[
+                tw`bg-white rounded-2xl overflow-hidden border border-gray-100 mb-4`,
+                { elevation: 2 },
+              ]}
+            >
+              <View style={[tw`flex-row`, { backgroundColor: "#4F46E5" }]}>
+                <View style={[tw`px-3 py-3 justify-center`, { width: 60 }]}>
+                  <Text style={tw`text-white text-xs font-bold`}>No</Text>
+                </View>
+                <View style={[tw`px-3 py-3 justify-center`, { flex: 1 }]}>
+                  <Text style={tw`text-white text-xs font-bold`}>Name</Text>
+                </View>
+                <View style={[tw`px-3 py-3 justify-center`, { width: 150 }]}>
+                  <Text style={tw`text-white text-xs font-bold`}>
+                    Booked At
+                  </Text>
+                </View>
+              </View>
+
+              {searchResults.map((ticket, index) => (
+                <TouchableOpacity
+                  key={ticket.documentId}
+                  onPress={() => {
+                    setSelectedTicket(ticket);
+                    setTicketModal(true);
+                  }}
+                  style={[
+                    tw`flex-row`,
+                    {
+                      backgroundColor: index % 2 === 0 ? "#FFFFFF" : "#F9FAFB",
+                      borderTopWidth: 1,
+                      borderTopColor: "#F3F4F6",
+                    },
+                  ]}
+                >
+                  <View style={[tw`px-3 py-4 justify-center`, { width: 60 }]}>
+                    <Text style={tw`text-xs text-gray-500`}>{index + 1}</Text>
                   </View>
-                  <View style={[tw`px-3 py-3 justify-center`, { flex: 1 }]}>
-                    <Text style={tw`text-white text-xs font-bold`}>Name</Text>
-                  </View>
-                  <View style={[tw`px-3 py-3 justify-center`, { width: 150 }]}>
-                    <Text style={tw`text-white text-xs font-bold`}>
-                      Booked At
+                  <View style={[tw`px-3 py-4 justify-center`, { flex: 1 }]}>
+                    <Text
+                      style={tw`text-xs text-gray-800 font-semibold`}
+                      numberOfLines={1}
+                    >
+                      {ticket.Name ?? "—"}
                     </Text>
                   </View>
-                </View>
+                  <View style={[tw`px-3 py-4 justify-center`, { width: 150 }]}>
+                    <Text style={tw`text-xs text-gray-600`} numberOfLines={2}>
+                      {formatDate(ticket.createdAt)}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </>
+        )}
 
-                {searchResults.map((ticket, index) => (
-                  <TouchableOpacity
-                    key={ticket.documentId}
-                    onPress={() => {
-                      setSelectedTicket(ticket);
-                      setTicketModal(true);
-                    }}
-                    style={[
-                      tw`flex-row`,
-                      {
-                        backgroundColor:
-                          index % 2 === 0 ? "#FFFFFF" : "#F9FAFB",
-                        borderTopWidth: 1,
-                        borderTopColor: "#F3F4F6",
-                      },
-                    ]}
-                  >
-                    <View style={[tw`px-3 py-4 justify-center`, { width: 60 }]}>
-                      <Text style={tw`text-xs text-gray-500`}>{index + 1}</Text>
-                    </View>
-                    <View style={[tw`px-3 py-4 justify-center`, { flex: 1 }]}>
-                      <Text
-                        style={tw`text-xs text-gray-800 font-semibold`}
-                        numberOfLines={1}
-                      >
-                        {ticket.Name ?? "—"}
-                      </Text>
-                    </View>
-                    <View
-                      style={[tw`px-3 py-4 justify-center`, { width: 150 }]}
-                    >
-                      <Text style={tw`text-xs text-gray-600`} numberOfLines={2}>
-                        {formatDate(ticket.createdAt)}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </>
+        {!searching &&
+          hasSearched &&
+          selectedEventId &&
+          searchName.trim() &&
+          searchResults.length === 0 && (
+            <View style={tw`items-center py-6`}>
+              <Ionicons name="search-outline" size={32} color="#A5B4FC" />
+              <Text style={tw`text-gray-400 text-sm mt-2`}>
+                No tickets found for {selectedEvent?.Name ?? "this event"}
+              </Text>
+            </View>
           )}
-
-          {!searching &&
-            hasSearched &&
-            selectedEventId &&
-            searchName.trim() &&
-            searchResults.length === 0 && (
-              <View style={tw`items-center py-6`}>
-                <Ionicons name="search-outline" size={32} color="#A5B4FC" />
-                <Text style={tw`text-gray-400 text-sm mt-2`}>
-                  No tickets found for {selectedEvent?.Name ?? "this event"}
-                </Text>
-              </View>
-            )}
-        </View>
-      )}
+      </View>
 
       <PopUpAlert
         success={failModal}
