@@ -41,7 +41,7 @@ export default function OfflineTicketGeneration() {
     Email: null,
     Phone: "",
     ticket: null,
-    Ticket_Status: true,
+    Ticket_Status: false,
     Payment: "Cash",
     agent: null,
     SeatNo: "",
@@ -51,7 +51,6 @@ export default function OfflineTicketGeneration() {
   const [loading, setLoading] = useState(false);
   const [events, setEvents] = useState([]);
   const [agents, setAgents] = useState([]);
-  const [buyState, setBuyState] = useState(1);
   const [ticketLimit, setTicketLimit] = useState([]);
   const [avariableTicketType, setAvariableTicketType] = useState([]);
   const [soldOut, setSoldOut] = useState(false);
@@ -302,7 +301,11 @@ export default function OfflineTicketGeneration() {
       }
 
       setSoldOut(
-        deriveSoldOutState(selectedTicketId, nextTicketLimit, nextBookedTickets),
+        deriveSoldOutState(
+          selectedTicketId,
+          nextTicketLimit,
+          nextBookedTickets,
+        ),
       );
 
       return {
@@ -354,6 +357,9 @@ export default function OfflineTicketGeneration() {
     let idOfTicket = data.Ticket_Id?.trim();
     const currentEventId = data.event;
     const currentTicketId = data.ticket;
+    const currentTicketStatus = data.Ticket_Status;
+    const currentAgent = data.agent;
+    const currentNote = data.Note;
 
     if (data.Ticket_Status) {
       if (!idOfTicket) {
@@ -414,14 +420,13 @@ export default function OfflineTicketGeneration() {
             Email: null,
             Phone: "",
             ticket: currentTicketId,
-            Ticket_Status: true,
+            Ticket_Status: currentTicketStatus,
             Payment: "Cash",
-            agent: data.agent,
+            agent: currentAgent,
             SeatNo: "",
-            Note: data.Note,
+            Note: currentNote,
             Ticket_Id: null,
           });
-          setBuyState(1);
           setSuccessModal(true);
         } else {
           console.log("online");
@@ -438,14 +443,13 @@ export default function OfflineTicketGeneration() {
             Email: null,
             Phone: "",
             ticket: currentTicketId,
-            Ticket_Status: true,
+            Ticket_Status: currentTicketStatus,
             Payment: "Cash",
-            agent: data.agent,
+            agent: currentAgent,
             SeatNo: "",
-            Note: data.Note,
+            Note: currentNote,
             Ticket_Id: null,
           });
-          setBuyState(1);
           navigation.navigate("generateQR", {
             documentId: idOfTicket,
             ticketType: ticket_Type.Name,
@@ -537,10 +541,8 @@ export default function OfflineTicketGeneration() {
             handleBooking,
             soldOut,
             avariableTicketType,
-            setBuyState,
             setData,
             data,
-            buyState,
             loading,
             user,
             bookedTickets,
@@ -559,7 +561,7 @@ export default function OfflineTicketGeneration() {
             Ticket Generate
           </Text>
           <Text style={tw`text-gray-500 text-sm mt-2 mb-6`}>
-            Create tickets for offline sales manually or in bulk
+            Create online or offline tickets manually, or import in bulk
           </Text>
 
           {/* Select Event*/}
