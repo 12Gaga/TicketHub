@@ -20,23 +20,77 @@ import { Barcode } from "react-native-svg-barcode";
 import { resolveMediaUrl } from "../Configs/eventPosterUtils";
 import {
   EVENT_POSTER_RATIO,
-  EVENT_POSTER_WIDTH,
+  TICKET_CANVAS_WIDTH,
+  TICKET_PREVIEW_HEIGHT,
+  TICKET_PREVIEW_WIDTH,
 } from "../Configs/ticketLayout";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
-const CARD_WIDTH = Math.min(SCREEN_WIDTH - 32, EVENT_POSTER_WIDTH / 2);
-const TICKET_IMAGE_HEIGHT = Math.round(CARD_WIDTH / EVENT_POSTER_RATIO);
+const PREVIEW_HORIZONTAL_PADDING = 32;
+const CARD_WIDTH = TICKET_PREVIEW_WIDTH;
+const CARD_HEIGHT = TICKET_PREVIEW_HEIGHT;
+const PREVIEW_SCALE = Math.min(
+  (SCREEN_WIDTH - PREVIEW_HORIZONTAL_PADDING) / CARD_WIDTH,
+  1,
+);
+const PREVIEW_WIDTH = Math.round(CARD_WIDTH * PREVIEW_SCALE);
+const PREVIEW_HEIGHT = Math.round(CARD_HEIGHT * PREVIEW_SCALE);
+
+const CARD_RADIUS = 18;
+const HEADER_HEIGHT = 48;
+const POSTER_HEIGHT = Math.round(CARD_WIDTH / EVENT_POSTER_RATIO);
+const BODY_PADDING_HORIZONTAL = 16;
+const BODY_PADDING_TOP = 16;
+const BODY_PADDING_BOTTOM = 16;
+const DETAIL_ROW_GAP = 20;
+const DETAIL_COLUMN_GAP = 12;
+const DETAIL_ICON_SIZE = 18;
+const DETAIL_LABEL_SIZE = 12;
+const DETAIL_VALUE_SIZE = 14;
+const DETAIL_VALUE_LINE_HEIGHT = 20;
+const BARCODE_PANEL_PADDING_HORIZONTAL = 12;
+const BARCODE_PANEL_PADDING_TOP = 16;
+const BARCODE_PANEL_PADDING_BOTTOM = 14;
+const BARCODE_HEIGHT = 74;
+const BARCODE_MAX_WIDTH = CARD_WIDTH - 74;
+const BARCODE_PANEL_MARGIN_TOP = 20;
+const POSTER_PILL_BOTTOM = 14;
+const POSTER_PILL_LEFT = 14;
+const POSTER_PILL_FONT_SIZE = 11;
+const HEADER_FONT_SIZE = 16;
+const FALLBACK_ICON_SIZE = 48;
+const FALLBACK_TITLE_SIZE = 26;
+const FALLBACK_SUBTITLE_SIZE = 12;
+
+const THEME = {
+  headerTop: "#800A00",
+  headerBottom: "#1A0200",
+  cardTop: "#430403",
+  cardBottom: "#1F0101",
+  bodyTop: "#1A0200",
+  bodyBottom: "#810E05",
+  ticketPill: "#7D4A12",
+  ticketPillBorder: "#B67825",
+  goldStrong: "#F2D37C",
+  goldSoft: "#D7BA6A",
+  goldMuted: "#B99446",
+  cream: "#F3E7C6",
+  creamText: "#2C1807",
+  creamAccent: "#6D1A0F",
+  creamBorder: "#DAC685",
+  divider: "#DAC685",
+};
 
 const DETAIL_ITEMS = [
   {
     key: "ticketId",
     label: "Ticket ID",
-    icon: "document-text-outline",
+    icon: "ticket-outline",
     column: "left",
   },
   {
     key: "seatNo",
-    label: "Seat No",
+    label: "Seat No.",
     icon: "grid-outline",
     column: "right",
   },
@@ -66,6 +120,126 @@ const DETAIL_ITEMS = [
   },
 ];
 
+function formatTime(timeStr) {
+  if (!timeStr) return "TBA";
+
+  const [h, m] = String(timeStr).split(":");
+  const hour = Number.parseInt(h, 10);
+
+  if (Number.isNaN(hour) || !m) {
+    return timeStr;
+  }
+
+  const ampm = hour >= 12 ? "PM" : "AM";
+  const h12 = hour % 12 || 12;
+  return `${h12}:${m} ${ampm}`;
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return "TBA";
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    return dateStr.replace(/-/g, ".");
+  }
+
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) {
+    return dateStr;
+  }
+
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}.${month}.${day}`;
+}
+
+function TicketPosterFallback({ eventName, ticketType }) {
+  return (
+    <LinearGradient
+      colors={["#2B0907", "#74110C", "#B43B12"]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={{
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: 28,
+      }}
+    >
+      <View
+        style={{
+          width: "100%",
+          height: "100%",
+          position: "absolute",
+          opacity: 0.38,
+        }}
+      >
+        <LinearGradient
+          colors={["transparent", "rgba(255,255,255,0.08)", "transparent"]}
+          start={{ x: 0, y: 0.25 }}
+          end={{ x: 1, y: 0.75 }}
+          style={{
+            position: "absolute",
+            top: -20,
+            left: -40,
+            right: -40,
+            bottom: -20,
+            transform: [{ rotate: "24deg" }],
+          }}
+        />
+        <LinearGradient
+          colors={["transparent", "rgba(255,255,255,0.06)", "transparent"]}
+          start={{ x: 1, y: 0.2 }}
+          end={{ x: 0, y: 0.8 }}
+          style={{
+            position: "absolute",
+            top: -20,
+            left: -40,
+            right: -40,
+            bottom: -20,
+            transform: [{ rotate: "-24deg" }],
+          }}
+        />
+      </View>
+
+      <Ionicons
+        name="musical-notes"
+        size={FALLBACK_ICON_SIZE}
+        color={THEME.goldStrong}
+      />
+      <Text
+        numberOfLines={2}
+        allowFontScaling={false}
+        style={{
+          color: THEME.goldStrong,
+          fontSize: FALLBACK_TITLE_SIZE,
+          fontWeight: "900",
+          letterSpacing: 1.1,
+          textAlign: "center",
+          marginTop: 18,
+        }}
+      >
+        {eventName || "Event Ticket"}
+      </Text>
+      <Text
+        numberOfLines={1}
+        allowFontScaling={false}
+        style={{
+          color: "rgba(242, 211, 124, 0.88)",
+          fontSize: FALLBACK_SUBTITLE_SIZE,
+          fontWeight: "800",
+          textTransform: "uppercase",
+          letterSpacing: 1.8,
+          textAlign: "center",
+          marginTop: 12,
+        }}
+      >
+        {ticketType || "General Admission"}
+      </Text>
+    </LinearGradient>
+  );
+}
+
 export default function GenerateQRScreen({ route }) {
   const navigation = useNavigation();
   const [failModal, setFailModal] = useState(false);
@@ -93,35 +267,6 @@ export default function GenerateQRScreen({ route }) {
     seatNo: "",
     eventImage: null,
   };
-
-  function formatTime(timeStr) {
-    if (!timeStr) return "TBA";
-    const [h, m] = timeStr.split(":");
-    const hour = parseInt(h);
-    const ampm = hour >= 12 ? "PM" : "AM";
-    const h12 = hour % 12 || 12;
-    return `${h12}:${m} ${ampm}`;
-  }
-
-  function formatDate(dateStr) {
-    if (!dateStr) return "TBA";
-
-    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-      return dateStr.replace(/-/g, ".");
-    }
-
-    const d = new Date(dateStr);
-
-    if (Number.isNaN(d.getTime())) {
-      return dateStr;
-    }
-
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-
-    return `${year}.${month}.${day}`;
-  }
 
   const barcodeValue = documentId ? String(documentId) : "INVALID";
   const imageUrl = resolveMediaUrl(eventImage);
@@ -152,14 +297,14 @@ export default function GenerateQRScreen({ route }) {
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [fadeAnim, slideAnim]);
 
   const handleSave = async () => {
     try {
       const uri = await captureRef(qrRef, {
         format: "png",
         quality: 1,
-        width: EVENT_POSTER_WIDTH,
+        width: TICKET_CANVAS_WIDTH,
       });
       const { status } = await MediaLibrary.requestPermissionsAsync();
       if (status !== "granted") {
@@ -167,6 +312,7 @@ export default function GenerateQRScreen({ route }) {
         setFailModal(true);
         return;
       }
+
       const asset = await MediaLibrary.createAssetAsync(uri);
       const album = await MediaLibrary.getAlbumAsync("Download");
       if (album == null) {
@@ -174,6 +320,7 @@ export default function GenerateQRScreen({ route }) {
       } else {
         await MediaLibrary.addAssetsToAlbumAsync([asset], album, false);
       }
+
       setText("✅ Ticket saved to Downloads!");
       setSuccessModal(true);
     } catch (err) {
@@ -203,247 +350,286 @@ export default function GenerateQRScreen({ route }) {
             Booking Confirmed
           </Text>
         </LinearGradient>
-        {/* ── Ticket Card ── */}
+
         <Animated.View
-          ref={qrRef}
-          collapsable={false}
           style={[
-            tw`w-full self-center`,
+            tw`self-center`,
             {
-              width: CARD_WIDTH,
+              width: PREVIEW_WIDTH,
+              height: PREVIEW_HEIGHT,
               opacity: fadeAnim,
               transform: [{ translateY: slideAnim }],
-              shadowColor: "#000",
-              shadowOffset: { width: 0, height: 8 },
-              shadowOpacity: 0.2,
-              shadowRadius: 16,
-              elevation: 12,
-              borderRadius: 16,
               marginTop: 10,
             },
           ]}
         >
           <View
             style={{
-              borderRadius: 16,
-              overflow: "hidden",
-              backgroundColor: "#FFFFFF",
+              position: "absolute",
+              top: (PREVIEW_HEIGHT - CARD_HEIGHT) / 2,
+              left: (PREVIEW_WIDTH - CARD_WIDTH) / 2,
+              width: CARD_WIDTH,
+              height: CARD_HEIGHT,
+              transform: [{ scale: PREVIEW_SCALE }],
             }}
           >
             <View
+              ref={qrRef}
+              collapsable={false}
               style={{
-                minHeight: 46,
-                backgroundColor: "#7A130C",
-                alignItems: "center",
-                justifyContent: "center",
-                paddingHorizontal: 16,
-                paddingVertical: 10,
+                width: CARD_WIDTH,
+                height: CARD_HEIGHT,
+                shadowColor: "#240101",
+                shadowOffset: { width: 0, height: 12 },
+                shadowOpacity: 0.28,
+                shadowRadius: 20,
+                elevation: 12,
+                borderRadius: CARD_RADIUS,
               }}
             >
-              <Text
-                numberOfLines={1}
+              <LinearGradient
+                colors={[THEME.cardTop, THEME.cardBottom]}
+                start={{ x: 0.1, y: 0 }}
+                end={{ x: 0.9, y: 1 }}
                 style={{
-                  color: "#FFFFFF",
-                  fontSize: 17,
-                  fontWeight: "800",
-                  letterSpacing: 0.2,
-                  textAlign: "center",
+                  flex: 1,
+                  borderRadius: CARD_RADIUS,
+                  overflow: "hidden",
                 }}
               >
-                {eventName || "Event Ticket"}
-              </Text>
-            </View>
-
-            <View
-              style={{
-                width: "100%",
-                height: TICKET_IMAGE_HEIGHT,
-                backgroundColor: "#000",
-              }}
-            >
-              {imageUrl ? (
-                <Image
-                  source={{ uri: imageUrl }}
-                  style={{ width: "100%", height: "100%" }}
-                  resizeMode="cover"
-                />
-              ) : (
                 <LinearGradient
-                  colors={["#30110E", "#915022", "#E0AF6A"]}
+                  colors={[THEME.headerTop, THEME.headerBottom]}
+                  start={{ x: 0.5, y: 0 }}
+                  end={{ x: 0.5, y: 1 }}
                   style={{
-                    flex: 1,
+                    height: HEADER_HEIGHT,
                     alignItems: "center",
                     justifyContent: "center",
                     paddingHorizontal: 24,
                   }}
                 >
-                  <Ionicons name="musical-notes" size={50} color="#fff" />
                   <Text
+                    numberOfLines={1}
+                    allowFontScaling={false}
                     style={{
-                      color: "#FFFFFF",
-                      fontSize: 20,
-                      fontWeight: "800",
+                      color: THEME.goldStrong,
+                      fontSize: HEADER_FONT_SIZE,
+                      fontWeight: "900",
                       textAlign: "center",
-                      marginTop: 12,
                     }}
                   >
-                    {eventName}
-                  </Text>
-                  <Text
-                    style={{
-                      color: "rgba(255,255,255,0.82)",
-                      fontSize: 12,
-                      fontWeight: "600",
-                      marginTop: 8,
-                      textTransform: "uppercase",
-                      letterSpacing: 1.2,
-                    }}
-                  >
-                    {ticketType} Ticket
+                    {eventName || "Event Ticket"}
                   </Text>
                 </LinearGradient>
-              )}
-            </View>
 
-            <View
-              style={{
-                backgroundColor: "#FFFFFF",
-                paddingHorizontal: 18,
-                paddingTop: 18,
-                paddingBottom: 14,
-              }}
-            >
-              <View
-                style={{
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  marginBottom: 10,
-                }}
-              >
                 <View
                   style={{
-                    backgroundColor: "#FEF4E8",
-                    borderRadius: 999,
-                    paddingHorizontal: 12,
-                    paddingVertical: 6,
+                    width: "100%",
+                    height: POSTER_HEIGHT,
+                    backgroundColor: "#0D0000",
+                    position: "relative",
                   }}
                 >
-                  <Text
+                  {imageUrl ? (
+                    <>
+                      <Image
+                        source={{ uri: imageUrl }}
+                        style={{ width: "100%", height: "100%" }}
+                        resizeMode="contain"
+                      />
+                      <LinearGradient
+                        colors={[
+                          "rgba(15, 0, 0, 0.1)",
+                          "rgba(15, 0, 0, 0.15)",
+                          "rgba(15, 0, 0, 0.55)",
+                        ]}
+                        start={{ x: 0.5, y: 0 }}
+                        end={{ x: 0.5, y: 1 }}
+                        style={{
+                          position: "absolute",
+                          top: 0,
+                          right: 0,
+                          bottom: 0,
+                          left: 0,
+                        }}
+                      />
+                    </>
+                  ) : (
+                    <TicketPosterFallback
+                      eventName={eventName}
+                      ticketType={ticketType}
+                    />
+                  )}
+
+                  <View
                     style={{
-                      fontSize: 11,
-                      color: "#7A130C",
-                      fontWeight: "700",
-                      textTransform: "uppercase",
-                      letterSpacing: 0.7,
+                      position: "absolute",
+                      left: POSTER_PILL_LEFT,
+                      bottom: POSTER_PILL_BOTTOM,
+                      borderRadius: 999,
+                      paddingHorizontal: 14,
+                      paddingVertical: 8,
+                      backgroundColor: THEME.ticketPill,
+                      borderWidth: 1,
+                      borderColor: THEME.ticketPillBorder,
+                      shadowColor: "#000",
+                      shadowOffset: { width: 0, height: 4 },
+                      shadowOpacity: 0.18,
+                      shadowRadius: 8,
+                      elevation: 4,
                     }}
                   >
-                    {ticketType}
-                  </Text>
+                    <Text
+                      numberOfLines={1}
+                      allowFontScaling={false}
+                      style={{
+                        color: THEME.goldStrong,
+                        fontSize: POSTER_PILL_FONT_SIZE,
+                        fontWeight: "900",
+                        textTransform: "uppercase",
+                        letterSpacing: 0.8,
+                      }}
+                    >
+                      {ticketType || "General"}
+                    </Text>
+                  </View>
                 </View>
-              </View>
 
-              <View
-                style={{
-                  flexDirection: "row",
-                  flexWrap: "wrap",
-                  rowGap: 18,
-                }}
-              >
-                {DETAIL_ITEMS.map((item) => (
+                <LinearGradient
+                  colors={[THEME.bodyTop, THEME.bodyBottom]}
+                  start={{ x: 0.505, y: 0 }}
+                  end={{ x: 0.495, y: 1 }}
+                  style={{
+                    flexGrow: 1,
+                    paddingHorizontal: BODY_PADDING_HORIZONTAL,
+                    paddingTop: BODY_PADDING_TOP,
+                    paddingBottom: BODY_PADDING_BOTTOM,
+                    justifyContent: "space-between",
+                  }}
+                >
                   <View
-                    key={item.key}
                     style={{
-                      width: "50%",
-                      paddingRight: item.column === "left" ? 16 : 0,
-                      paddingLeft: item.column === "right" ? 12 : 0,
+                      width: "100%",
                     }}
                   >
                     <View
                       style={{
                         flexDirection: "row",
-                        alignItems: "flex-start",
+                        flexWrap: "wrap",
+                        rowGap: DETAIL_ROW_GAP,
                       }}
                     >
-                      <Ionicons
-                        name={item.icon}
-                        size={18}
-                        color="#6D4A43"
-                        style={{ marginTop: 2, marginRight: 8 }}
-                      />
-                      <View style={{ flex: 1 }}>
-                        <Text
+                      {DETAIL_ITEMS.map((item) => (
+                        <View
+                          key={item.key}
                           style={{
-                            fontSize: 11,
-                            color: "#5A312A",
-                            fontWeight: "800",
-                            marginBottom: 4,
+                            width: "50%",
+                            paddingRight:
+                              item.column === "left" ? DETAIL_COLUMN_GAP : 0,
+                            paddingLeft:
+                              item.column === "right" ? DETAIL_COLUMN_GAP : 0,
                           }}
                         >
-                          {item.label}
-                        </Text>
-                        <Text
-                          style={{
-                            fontSize: 12,
-                            lineHeight: 17,
-                            color: "#3B302E",
-                            fontWeight: "500",
-                          }}
-                        >
-                          {detailValues[item.key]}
-                        </Text>
-                      </View>
+                          <View
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "flex-start",
+                            }}
+                          >
+                            <Ionicons
+                              name={item.icon}
+                              size={DETAIL_ICON_SIZE}
+                              color={THEME.goldSoft}
+                              style={{
+                                marginTop: 1,
+                                marginRight: 8,
+                              }}
+                            />
+                            <View style={{ flex: 1 }}>
+                              <Text
+                                allowFontScaling={false}
+                                style={{
+                                  color: THEME.goldStrong,
+                                  fontSize: DETAIL_LABEL_SIZE,
+                                  fontWeight: "900",
+                                  letterSpacing: 0.4,
+                                  marginBottom: 5,
+                                }}
+                              >
+                                {item.label}
+                              </Text>
+                              <Text
+                                allowFontScaling={false}
+                                numberOfLines={2}
+                                style={{
+                                  color: THEME.goldSoft,
+                                  fontSize: DETAIL_VALUE_SIZE,
+                                  lineHeight: DETAIL_VALUE_LINE_HEIGHT,
+                                  fontWeight: "400",
+                                  minHeight: 30,
+                                }}
+                              >
+                                {detailValues[item.key]}
+                              </Text>
+                            </View>
+                          </View>
+                        </View>
+                      ))}
                     </View>
                   </View>
-                ))}
-              </View>
-            </View>
 
-            <View
-              style={{
-                borderTopWidth: 1,
-                borderTopColor: "#E5E5E5",
-                backgroundColor: "#FFFFFF",
-                alignItems: "center",
-                paddingTop: 18,
-                paddingBottom: 22,
-                paddingHorizontal: 18,
-              }}
-            >
-              <Barcode
-                value={barcodeValue}
-                format="CODE128"
-                height={84}
-                lineColor="#000000"
-                background="#ffffff"
-                maxWidth={CARD_WIDTH - 72}
-              />
-              <Text
-                style={{
-                  fontSize: 10,
-                  color: "#555555",
-                  marginTop: 10,
-                  letterSpacing: 1,
-                }}
-              >
-                {barcodeValue}
-              </Text>
-              <Text
-                style={{
-                  textAlign: "center",
-                  fontSize: 10,
-                  color: "#7A7A7A",
-                  marginTop: 8,
-                  letterSpacing: 0.4,
-                  fontWeight: "600",
-                }}
-              >
-                By K Concert
-              </Text>
+                  <View
+                    style={{
+                      marginTop: BARCODE_PANEL_MARGIN_TOP,
+                      backgroundColor: THEME.cream,
+                      borderRadius: 10,
+                      borderTopWidth: 1,
+                      borderTopColor: THEME.creamBorder,
+                      paddingHorizontal: BARCODE_PANEL_PADDING_HORIZONTAL,
+                      paddingTop: BARCODE_PANEL_PADDING_TOP,
+                      paddingBottom: BARCODE_PANEL_PADDING_BOTTOM,
+                      alignItems: "center",
+                    }}
+                  >
+                    <Barcode
+                      value={barcodeValue}
+                      format="CODE128"
+                      height={BARCODE_HEIGHT}
+                      lineColor="#000000"
+                      background={THEME.cream}
+                      maxWidth={BARCODE_MAX_WIDTH}
+                    />
+                    <Text
+                      allowFontScaling={false}
+                      style={{
+                        fontSize: 10,
+                        color: THEME.creamText,
+                        marginTop: 8,
+                        letterSpacing: 0.6,
+                      }}
+                    >
+                      {barcodeValue}
+                    </Text>
+                    <Text
+                      allowFontScaling={false}
+                      style={{
+                        textAlign: "center",
+                        fontSize: 9,
+                        color: THEME.creamAccent,
+                        marginTop: 6,
+                        letterSpacing: 0.3,
+                        fontWeight: "800",
+                      }}
+                    >
+                      By K Concert
+                    </Text>
+                  </View>
+                </LinearGradient>
+              </LinearGradient>
             </View>
           </View>
         </Animated.View>
 
-        {/* ── Buttons ── */}
         <Animated.View style={[tw`w-full mt-6`, { opacity: fadeAnim }]}>
           <TouchableOpacity
             onPress={handleSave}
