@@ -44,9 +44,9 @@ const BODY_PADDING_TOP = 16;
 const BODY_PADDING_BOTTOM = 16;
 const DETAIL_ROW_GAP = 20;
 const DETAIL_COLUMN_GAP = 12;
-const DETAIL_ICON_SIZE = 18;
-const DETAIL_LABEL_SIZE = 12;
-const DETAIL_VALUE_SIZE = 14;
+const DETAIL_ICON_SIZE = 25;
+const DETAIL_LABEL_SIZE = 15;
+const DETAIL_VALUE_SIZE = 15;
 const DETAIL_VALUE_LINE_HEIGHT = 20;
 const BARCODE_PANEL_PADDING_HORIZONTAL = 12;
 const BARCODE_PANEL_PADDING_TOP = 16;
@@ -57,20 +57,24 @@ const BARCODE_PANEL_MARGIN_TOP = 20;
 const POSTER_PILL_BOTTOM = 14;
 const POSTER_PILL_LEFT = 14;
 const POSTER_PILL_FONT_SIZE = 11;
-const HEADER_FONT_SIZE = 16;
+const HEADER_FONT_SIZE = 18;
 const FALLBACK_ICON_SIZE = 48;
 const FALLBACK_TITLE_SIZE = 26;
 const FALLBACK_SUBTITLE_SIZE = 12;
+const TICKET_FONT_REGULAR = "Poppins_400Regular";
+const TICKET_FONT_BOLD = "Poppins_600SemiBold";
 
 const THEME = {
-  headerTop: "#800A00",
-  headerBottom: "#1A0200",
-  cardTop: "#430403",
-  cardBottom: "#1F0101",
-  bodyTop: "#1A0200",
-  bodyBottom: "#810E05",
-  ticketPill: "#7D4A12",
-  ticketPillBorder: "#B67825",
+  headerTop: "#6B0802",
+  headerBottom: "#140000",
+  cardTop: "#320202",
+  cardBottom: "#140000",
+  bodyTop: "#140000",
+  bodyBottom: "#6B0802",
+  ticketPillTop: "#5A340A",
+  ticketPillBottom: "#3F2205",
+  ticketPillBorder: "rgba(190, 140, 66, 0.45)",
+  ticketPillText: "#D3B06A",
   goldStrong: "#F2D37C",
   goldSoft: "#D7BA6A",
   goldMuted: "#B99446",
@@ -213,7 +217,7 @@ function TicketPosterFallback({ eventName, ticketType }) {
         style={{
           color: THEME.goldStrong,
           fontSize: FALLBACK_TITLE_SIZE,
-          fontWeight: "900",
+          fontFamily: TICKET_FONT_BOLD,
           letterSpacing: 1.1,
           textAlign: "center",
           marginTop: 18,
@@ -227,7 +231,7 @@ function TicketPosterFallback({ eventName, ticketType }) {
         style={{
           color: "rgba(242, 211, 124, 0.88)",
           fontSize: FALLBACK_SUBTITLE_SIZE,
-          fontWeight: "800",
+          fontFamily: TICKET_FONT_BOLD,
           textTransform: "uppercase",
           letterSpacing: 1.8,
           textAlign: "center",
@@ -414,7 +418,7 @@ export default function GenerateQRScreen({ route }) {
                     style={{
                       color: THEME.goldStrong,
                       fontSize: HEADER_FONT_SIZE,
-                      fontWeight: "900",
+                      fontFamily: TICKET_FONT_BOLD,
                       textAlign: "center",
                     }}
                   >
@@ -461,38 +465,40 @@ export default function GenerateQRScreen({ route }) {
                     />
                   )}
 
-                  <View
+                  <LinearGradient
+                    colors={[THEME.ticketPillTop, THEME.ticketPillBottom]}
+                    start={{ x: 0.5, y: 0 }}
+                    end={{ x: 0.5, y: 1 }}
                     style={{
                       position: "absolute",
                       left: POSTER_PILL_LEFT,
                       bottom: POSTER_PILL_BOTTOM,
                       borderRadius: 999,
-                      paddingHorizontal: 14,
-                      paddingVertical: 8,
-                      backgroundColor: THEME.ticketPill,
+                      paddingHorizontal: 10,
+                      paddingVertical: 1,
                       borderWidth: 1,
                       borderColor: THEME.ticketPillBorder,
                       shadowColor: "#000",
-                      shadowOffset: { width: 0, height: 4 },
-                      shadowOpacity: 0.18,
-                      shadowRadius: 8,
-                      elevation: 4,
+                      shadowOffset: { width: 0, height: 3 },
+                      shadowOpacity: 0.14,
+                      shadowRadius: 6,
+                      elevation: 3,
                     }}
                   >
                     <Text
                       numberOfLines={1}
                       allowFontScaling={false}
                       style={{
-                        color: THEME.goldStrong,
-                        fontSize: POSTER_PILL_FONT_SIZE,
-                        fontWeight: "900",
+                        color: THEME.ticketPillText,
+                        fontSize: 12,
+                        fontFamily: TICKET_FONT_BOLD,
                         textTransform: "uppercase",
-                        letterSpacing: 0.8,
+                        letterSpacing: 0.5,
                       }}
                     >
                       {ticketType || "General"}
                     </Text>
-                  </View>
+                  </LinearGradient>
                 </View>
 
                 <LinearGradient
@@ -543,6 +549,10 @@ export default function GenerateQRScreen({ route }) {
                               style={{
                                 marginTop: 1,
                                 marginRight: 8,
+                                transform:
+                                  item.key === "ticketId"
+                                    ? [{ rotate: "225deg" }]
+                                    : undefined,
                               }}
                             />
                             <View style={{ flex: 1 }}>
@@ -551,9 +561,9 @@ export default function GenerateQRScreen({ route }) {
                                 style={{
                                   color: THEME.goldStrong,
                                   fontSize: DETAIL_LABEL_SIZE,
-                                  fontWeight: "900",
+                                  fontFamily: TICKET_FONT_BOLD,
                                   letterSpacing: 0.4,
-                                  marginBottom: 5,
+                                  marginBottom: 2,
                                 }}
                               >
                                 {item.label}
@@ -565,7 +575,7 @@ export default function GenerateQRScreen({ route }) {
                                   color: THEME.goldSoft,
                                   fontSize: DETAIL_VALUE_SIZE,
                                   lineHeight: DETAIL_VALUE_LINE_HEIGHT,
-                                  fontWeight: "400",
+                                  fontFamily: TICKET_FONT_REGULAR,
                                   minHeight: 30,
                                 }}
                               >
@@ -604,6 +614,7 @@ export default function GenerateQRScreen({ route }) {
                       style={{
                         fontSize: 10,
                         color: THEME.creamText,
+                        fontFamily: TICKET_FONT_REGULAR,
                         marginTop: 8,
                         letterSpacing: 0.6,
                       }}
@@ -618,7 +629,7 @@ export default function GenerateQRScreen({ route }) {
                         color: THEME.creamAccent,
                         marginTop: 6,
                         letterSpacing: 0.3,
-                        fontWeight: "800",
+                        fontFamily: TICKET_FONT_BOLD,
                       }}
                     >
                       By K Concert
