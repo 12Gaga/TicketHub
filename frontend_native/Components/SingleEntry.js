@@ -21,12 +21,13 @@ export default function SingleEntry() {
     duplicateNameLoading,
     duplicateNameQuery,
     handleSingleEntryNameChange,
+    commitSingleEntryName,
   } = useContext(SaleTicket);
 
   const canGenerateTicket =
     data.event &&
     data.ticket &&
-    data.Name &&
+    data.Name.trim() &&
     data.agent &&
     !soldOut &&
     (!data.Ticket_Status || data.Ticket_Id);
@@ -135,6 +136,7 @@ export default function SingleEntry() {
                   style={tw`border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700`}
                   placeholderTextColor="#9CA3AF"
                   onChangeText={handleSingleEntryNameChange}
+                  onBlur={commitSingleEntryName}
                 />
 
                 {duplicateNameLoading && data.Name.trim() ? (

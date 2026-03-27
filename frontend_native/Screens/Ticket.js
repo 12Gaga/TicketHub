@@ -22,8 +22,11 @@ import { useRef } from "react";
 
 const DUPLICATE_NAME_DEBOUNCE_DELAY = 600;
 
+const sanitizeCustomerName = (value) =>
+  typeof value === "string" ? value.replace(/\s+/g, " ").trim() : "";
+
 const normalizeCustomerName = (value) =>
-  typeof value === "string" ? value.trim().toLowerCase() : "";
+  sanitizeCustomerName(value).toLowerCase();
 
 export default function OfflineTicketGeneration() {
   const scrollRef = useRef(null);
@@ -97,7 +100,7 @@ export default function OfflineTicketGeneration() {
         duplicateNameDebounceRef.current = null;
       }
 
-      const trimmedName = name?.trim?.() ?? "";
+      const trimmedName = sanitizeCustomerName(name);
 
       if (!data.event || !trimmedName) {
         setDuplicateNameQuery("");
@@ -118,6 +121,18 @@ export default function OfflineTicketGeneration() {
     },
     [data.event, runDuplicateNameLookup],
   );
+
+  const commitSingleEntryName = useCallback(() => {
+    setData((current) => {
+      const normalizedName = sanitizeCustomerName(current.Name);
+
+      if (normalizedName === current.Name) {
+        return current;
+      }
+
+      return { ...current, Name: normalizedName };
+    });
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -342,10 +357,12 @@ export default function OfflineTicketGeneration() {
   };
 
   const handleBooking = async () => {
+    const normalizedName = sanitizeCustomerName(data.Name);
+
     if (
       !data.event ||
       !data.ticket ||
-      !data.Name ||
+      !normalizedName ||
       !data.agent ||
       !user ||
       (data.Ticket_Status && !data.Ticket_Id)
@@ -392,7 +409,7 @@ export default function OfflineTicketGeneration() {
     const payload = {
       data: {
         event: data.event,
-        Name: data.Name,
+        Name: normalizedName,
         Email: data.Email,
         Phone: data.Phone,
         ticket: data.ticket,
@@ -435,7 +452,7 @@ export default function OfflineTicketGeneration() {
           const ticket_Type = avariableTicketType.find(
             (t) => t.documentId == data.ticket,
           );
-          const customerName = data.Name;
+          const customerName = normalizedName;
           const seatNo = data.SeatNo;
           setData({
             event: currentEventId,
@@ -550,6 +567,7 @@ export default function OfflineTicketGeneration() {
             duplicateNameLoading,
             duplicateNameQuery,
             handleSingleEntryNameChange,
+            commitSingleEntryName,
             ticketLimit,
             events,
             agents,

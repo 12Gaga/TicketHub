@@ -276,7 +276,7 @@ export default function GenerateQRScreen({ route }) {
   const imageUrl = resolveMediaUrl(eventImage);
   const detailValues = {
     ticketId: documentId || "TBA",
-    seatNo: seatNo || "Free Seating",
+    seatNo: seatNo || "Standing",
     venue: eventVenue || "TBA",
     time: formatTime(eventTime),
     date: formatDate(eventDate),
